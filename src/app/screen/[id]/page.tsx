@@ -303,7 +303,7 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
             <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-left">
               <h3 className="text-lg font-semibold mb-3">🔗 外部スライドを埋め込み</h3>
               <p className="text-sm text-white/40 mb-3">
-                Google Slides / Gamma / Canva / Speaker Deck のURLを貼り付け
+                Google Slides / Gamma / Canva / PowerPoint のURLを貼り付け
               </p>
               <form onSubmit={handleEmbed} className="flex gap-2">
                 <input
