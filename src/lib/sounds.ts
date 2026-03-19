@@ -56,3 +56,11 @@ export async function playSound(url: string, volume: number = 0.5): Promise<void
 export async function preloadSounds(urls: string[]): Promise<void> {
   await Promise.allSettled(urls.map((url) => loadSound(url)));
 }
+
+// ユーザー操作時に呼んでAudioContextを有効化
+export async function resumeAudioContext(): Promise<void> {
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    await ctx.resume();
+  }
+}

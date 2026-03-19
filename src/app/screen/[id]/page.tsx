@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef, use } from 'react';
 import { getSocket, cleanupSocket } from '@/lib/socket';
-import { playSound, preloadSounds } from '@/lib/sounds';
+import { playSound, preloadSounds, resumeAudioContext } from '@/lib/sounds';
 import { pdfToImages } from '@/lib/pdf';
 import ReactionOverlay from '@/components/ReactionOverlay';
 import CommentFlow from '@/components/CommentFlow';
@@ -42,10 +42,25 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
     volumeRef.current = volume;
   }, [volume]);
 
-  // 効果音プリロード
+  // 効果音プリロード + ユーザー操作でAudioContext有効化
   useEffect(() => {
     const soundUrls = Object.values(REACTIONS).map((r) => r.sound);
     preloadSounds(soundUrls);
+
+    const enableAudio = () => {
+      resumeAudioContext();
+      window.removeEventListener('click', enableAudio);
+      window.removeEventListener('touchstart', enableAudio);
+      window.removeEventListener('keydown', enableAudio);
+    };
+    window.addEventListener('click', enableAudio);
+    window.addEventListener('touchstart', enableAudio);
+    window.addEventListener('keydown', enableAudio);
+    return () => {
+      window.removeEventListener('click', enableAudio);
+      window.removeEventListener('touchstart', enableAudio);
+      window.removeEventListener('keydown', enableAudio);
+    };
   }, []);
 
   // コントロールバー自動非表示（iframe外ではmousemoveで検知）
