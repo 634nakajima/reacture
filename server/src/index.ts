@@ -2,7 +2,16 @@ import { Server } from 'socket.io';
 import { createServer } from 'http';
 import { v4 as uuidv4 } from 'uuid';
 
-const httpServer = createServer();
+const httpServer = createServer((req, res) => {
+  // Renderのヘルスチェック用
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('ok');
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
 
 const allowedOrigins = process.env.CLIENT_ORIGIN
   ? process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim())
@@ -250,6 +259,6 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
-httpServer.listen(PORT, () => {
-  console.log(`Reacture Socket.IO server running on port ${PORT}`);
+httpServer.listen(Number(PORT), '0.0.0.0', () => {
+  console.log(`Reacture Socket.IO server running on 0.0.0.0:${PORT}`);
 });
