@@ -3,9 +3,14 @@ import { createServer } from 'http';
 import { v4 as uuidv4 } from 'uuid';
 
 const httpServer = createServer();
+
+const allowedOrigins = process.env.CLIENT_ORIGIN
+  ? process.env.CLIENT_ORIGIN.split(',').map((s) => s.trim())
+  : ['http://localhost:3000'];
+
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:3000',
+    origin: allowedOrigins,
     methods: ['GET', 'POST'],
   },
 });

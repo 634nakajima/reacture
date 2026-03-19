@@ -450,7 +450,7 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
                 onClick={() => { setSlideMode('none'); setEmbedUrl(''); }}
                 className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20"
               >
-                ✕ 埋め込み解除
+                ✕ 表示を解除
               </button>
             )}
           </div>
