@@ -70,6 +70,7 @@ export default function Home() {
       <div className="max-w-md w-full space-y-8 text-center">
         {/* ロゴ */}
         <div>
+          <img src="/logo.png" alt="Reacture" className="w-20 h-20 mx-auto mb-3" />
           <h1 className="text-6xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             Reacture
           </h1>

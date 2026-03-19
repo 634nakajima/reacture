@@ -117,7 +117,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
       {/* ヘッダー */}
       <header className="flex items-center justify-between px-4 py-4 border-b border-white/10">
         <div className="flex items-center gap-3">
-          <a href="/" className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors text-xl font-bold">←</a>
+          <a href="/" className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-white/10 transition-colors"><img src="/logo.png" alt="トップに戻る" className="w-8 h-8" /></a>
           <div>
             <span className="text-base text-white/50">ルーム</span>
             <span className="ml-2 text-lg font-mono font-bold tracking-wider">{roomId}</span>
@@ -132,6 +132,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
       <div className="flex-1 flex flex-col gap-4 pb-6">
         {/* 中央エリア */}
         <div className="flex-1 flex flex-col items-center justify-center px-4 text-center">
+          <img src="/logo.png" alt="Reacture" className="w-16 h-16 mb-2" />
           <p className="text-4xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             Reacture
           </p>

@@ -123,7 +123,6 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
 
     socket.on('poll:ended', (poll: Poll) => {
       setActivePoll(poll);
-      setTimeout(() => setActivePoll(null), 8000);
     });
 
     return () => {
@@ -367,17 +366,37 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
       <ReactionOverlay reactions={reactions} />
       <CommentFlow comments={comments} />
 
-      {/* アンケート結果 */}
+      {/* アンケート */}
       {activePoll && (
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
-          <PollResults poll={activePoll} />
-          {activePoll.active && (
-            <button
-              onClick={handleEndPoll}
-              className="mt-3 w-full py-2 bg-red-600/80 text-white rounded-lg text-sm hover:bg-red-500"
-            >
-              投票を終了
-            </button>
+          {activePoll.active ? (
+            <div className="bg-black/60 backdrop-blur-md rounded-2xl p-14 w-[800px] border border-white/10 text-center">
+              <h3 className="text-white text-3xl font-bold mb-20">{activePoll.question}</h3>
+              <div className="space-y-4 mb-8">
+                {activePoll.options.map((opt, i) => (
+                  <div key={i} className="px-6 py-4 bg-white/10 rounded-xl text-white text-xl">
+                    {opt.text}
+                  </div>
+                ))}
+              </div>
+              <p className="text-white/50 text-xl mb-8 animate-pulse">📊 投票受付中...</p>
+              <button
+                onClick={handleEndPoll}
+                className="px-10 py-4 bg-red-600/80 text-white rounded-lg text-lg hover:bg-red-500"
+              >
+                回答を終了して結果を表示
+              </button>
+            </div>
+          ) : (
+            <div className="w-[800px] relative">
+              <button
+                onClick={() => setActivePoll(null)}
+                className="absolute -top-3 -right-3 w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full text-white text-xl flex items-center justify-center z-10"
+              >
+                ✕
+              </button>
+              <PollResults poll={activePoll} />
+            </div>
           )}
         </div>
       )}
@@ -413,9 +432,9 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
           <div className="flex items-center gap-3">
             <a
               href="/"
-              className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 text-white hover:bg-white/30 transition-colors text-lg font-bold"
+              className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-white/10 transition-colors"
             >
-              ←
+              <img src="/logo.png" alt="トップに戻る" className="w-7 h-7" />
             </a>
 
             {/* スライドモード中のみファイル追加 */}
