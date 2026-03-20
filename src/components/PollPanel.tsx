@@ -51,7 +51,14 @@ export default function PollPanel({
   }
 
   return (
-    <div className="bg-gray-800/90 backdrop-blur-sm rounded-xl p-6 border border-white/10 w-[500px]">
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(false)}
+        className="px-4 py-2 bg-purple-600/80 text-white rounded-lg text-sm hover:bg-purple-500 transition-colors"
+      >
+        📊 アンケート作成
+      </button>
+      <div className="absolute bottom-full mb-3 right-0 bg-gray-800/95 backdrop-blur-sm rounded-xl p-6 border border-white/10 w-[500px]">
       <form onSubmit={handleSubmit} className="space-y-4">
         <textarea
           value={question}
@@ -107,6 +114,7 @@ export default function PollPanel({
           </button>
         </div>
       </form>
+      </div>
     </div>
   );
 }
