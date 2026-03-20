@@ -143,7 +143,7 @@ export default function CustomReactionSetting({
           <button
             onClick={handleSubmit}
             disabled={!emoji || !label.trim()}
-            className="px-5 py-2 bg-yellow-600 text-white rounded-lg text-sm font-medium disabled:opacity-30"
+            className="px-5 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg text-sm font-bold transition-all disabled:opacity-30"
           >
             設定
           </button>
