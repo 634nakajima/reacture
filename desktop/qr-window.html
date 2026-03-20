@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>QRコード - Reacture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fff;
+      color: #1f2937;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 32px;
+      text-align: center;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+    #qrImage {
+      width: 520px;
+      height: 520px;
+      margin-bottom: 24px;
+    }
+    .room-code {
+      font-size: 72px;
+      font-family: monospace;
+      font-weight: bold;
+      letter-spacing: 0.3em;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    .join-url {
+      font-size: 13px;
+      color: #9ca3af;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <h1>Reacture に参加</h1>
+  <p class="subtitle">QRコードをスキャンするか、コードを入力してください</p>
+  <img id="qrImage" />
+  <div class="room-code" id="roomCode"></div>
+  <div class="join-url" id="joinUrl"></div>
+
+  <script>
+    window.electronAPI.onQRData((data) => {
+      document.getElementById('qrImage').src = data.qrDataUrl;
+      document.getElementById('roomCode').textContent = data.roomId;
+      document.getElementById('joinUrl').textContent = data.joinUrl;
+    });
+  </script>
+</body>
+</html>

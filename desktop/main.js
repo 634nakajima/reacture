@@ -14,13 +14,20 @@ const QRCode = require('qrcode');
 
 let setupWindow = null;
 let overlayWindow = null;
+let qrWindow = null;
+let pollWindow = null;
 let tray = null;
 let socket = null;
+let currentVolume = 0.5;
+let currentRoomId = null;
+let overlayVisible = false;
+
+const WEB_URL = 'https://reacture-alpha.vercel.app';
 
 function createSetupWindow() {
   setupWindow = new BrowserWindow({
-    width: 480,
-    height: 580,
+    width: 560,
+    height: 520,
     resizable: false,
     frame: true,
     title: 'Reacture Desktop',
@@ -33,6 +40,16 @@ function createSetupWindow() {
 
   setupWindow.loadFile('setup.html');
   setupWindow.setMenuBarVisibility(false);
+
+  // ページ読み込み完了後、現在のルーム状態を復元
+  setupWindow.webContents.on('did-finish-load', () => {
+    if (currentRoomId && socket && socket.connected) {
+      setupWindow.webContents.send('connection-result', {
+        success: true,
+        roomId: currentRoomId,
+      });
+    }
+  });
 
   setupWindow.on('closed', () => {
     setupWindow = null;
@@ -73,6 +90,81 @@ function createOverlayWindow() {
   });
 }
 
+function openQRWindow() {
+  if (!currentRoomId) return;
+
+  if (qrWindow) {
+    qrWindow.focus();
+    return;
+  }
+
+  qrWindow = new BrowserWindow({
+    width: 800,
+    height: 1000,
+    resizable: false,
+    frame: true,
+    title: 'QRコード - Reacture',
+    center: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  qrWindow.setMenuBarVisibility(false);
+  qrWindow.loadFile('qr-window.html');
+
+  qrWindow.webContents.on('did-finish-load', async () => {
+    const joinUrl = WEB_URL + '/room/' + currentRoomId;
+    const qrDataUrl = await QRCode.toDataURL(joinUrl, { width: 600, margin: 2 });
+    qrWindow.webContents.send('qr-data', {
+      qrDataUrl,
+      roomId: currentRoomId,
+      joinUrl,
+    });
+  });
+
+  qrWindow.on('closed', () => {
+    qrWindow = null;
+  });
+}
+
+function openPollWindow() {
+  if (pollWindow) {
+    pollWindow.focus();
+    return;
+  }
+
+  pollWindow = new BrowserWindow({
+    width: 800,
+    height: 1000,
+    resizable: true,
+    frame: true,
+    title: 'アンケート - Reacture',
+    center: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  pollWindow.setMenuBarVisibility(false);
+  pollWindow.loadFile('poll-window.html');
+
+  pollWindow.on('closed', () => {
+    pollWindow = null;
+  });
+}
+
+function closePollWindow() {
+  if (pollWindow) {
+    pollWindow.close();
+    pollWindow = null;
+  }
+}
+
 function createRoom(serverUrl) {
   if (socket) {
     socket.disconnect();
@@ -86,23 +178,25 @@ function createRoom(serverUrl) {
     console.log('[main] Socket connected, creating room...');
     socket.emit('room:create', (data) => {
       if (data && data.roomId) {
+        currentRoomId = data.roomId;
         console.log('[main] Room created:', data.roomId);
         if (setupWindow) {
           setupWindow.webContents.send('connection-result', {
             success: true,
             roomId: data.roomId,
           });
-          // ルームコードを見せるために設定画面を最前面に
           setupWindow.setAlwaysOnTop(true);
           setupWindow.focus();
-          // 少し待ってから最前面を解除（ユーザーが操作できるように）
           setTimeout(() => {
             if (setupWindow) setupWindow.setAlwaysOnTop(false);
           }, 1000);
         }
         if (overlayWindow) {
           overlayWindow.show();
+          overlayVisible = true;
+          overlayWindow.webContents.send('volume-changed', currentVolume);
         }
+        updateTrayMenu();
         setupSocketListeners();
       } else {
         console.error('[main] Failed to create room');
@@ -144,6 +238,7 @@ function connectToRoom(serverUrl, roomId) {
     console.log('[main] Socket connected, joining room...');
     socket.emit('room:join', { roomId }, (data) => {
       if (data && data.success) {
+        currentRoomId = roomId;
         console.log('[main] Joined room:', roomId);
         if (setupWindow) {
           setupWindow.webContents.send('connection-result', { success: true });
@@ -193,11 +288,55 @@ function setupSocketListeners() {
     }
   });
 
+  socket.on('poll:started', (data) => {
+    console.log('[main] Poll started:', data);
+    if (setupWindow) {
+      setupWindow.webContents.send('poll-started', data);
+    }
+    // pollウィンドウを自動で開いてデータを送信
+    if (!pollWindow) {
+      openPollWindow();
+    }
+    // did-finish-load で送る場合とすでに開いている場合
+    if (pollWindow) {
+      const send = () => pollWindow.webContents.send('poll-started', data);
+      if (pollWindow.webContents.isLoading()) {
+        pollWindow.webContents.on('did-finish-load', send);
+      } else {
+        send();
+      }
+    }
+  });
+
+  socket.on('poll:updated', (data) => {
+    console.log('[main] Poll updated:', data);
+    if (pollWindow) {
+      pollWindow.webContents.send('poll-updated', data);
+    }
+  });
+
+  socket.on('poll:ended', (data) => {
+    console.log('[main] Poll ended:', data);
+    if (setupWindow) {
+      setupWindow.webContents.send('poll-ended', data);
+    }
+    if (pollWindow) {
+      pollWindow.webContents.send('poll-ended', data);
+    }
+  });
+
   socket.on('room:closed', () => {
     console.log('[main] Room closed');
+    currentRoomId = null;
+    updateTrayMenu();
     if (overlayWindow) {
       overlayWindow.webContents.send('room-closed');
       overlayWindow.hide();
+    }
+    closePollWindow();
+    if (qrWindow) {
+      qrWindow.close();
+      qrWindow = null;
     }
     if (setupWindow) {
       setupWindow.show();
@@ -232,41 +371,71 @@ function createTray() {
   );
   const trayIcon = icon.resize({ width: 16, height: 16 });
   tray = new Tray(trayIcon);
+  updateTrayMenu();
+}
 
-  const contextMenu = Menu.buildFromTemplate([
-    {
-      label: '設定画面を表示',
+function updateTrayMenu() {
+  if (!tray) return;
+
+  const menuItems = [];
+
+  // ルーム情報
+  if (currentRoomId) {
+    menuItems.push({
+      label: `ルーム: ${currentRoomId}`,
+      enabled: false,
+    });
+    menuItems.push({
+      label: 'QRコードを表示',
       click: () => {
-        if (setupWindow) {
-          setupWindow.show();
-          setupWindow.focus();
-        } else {
-          createSetupWindow();
-        }
+        openQRWindow();
       },
+    });
+    menuItems.push({ type: 'separator' });
+  }
+
+  menuItems.push({
+    label: '設定画面を表示',
+    click: () => {
+      if (setupWindow) {
+        setupWindow.show();
+        setupWindow.focus();
+      } else {
+        createSetupWindow();
+      }
     },
-    {
-      label: 'オーバーレイ表示/非表示',
+  });
+
+  if (currentRoomId) {
+    menuItems.push({
+      label: overlayVisible ? 'オーバーレイをOFF' : 'オーバーレイをON',
       click: () => {
+        overlayVisible = !overlayVisible;
         if (overlayWindow) {
-          if (overlayWindow.isVisible()) {
-            overlayWindow.hide();
-          } else {
+          if (overlayVisible) {
             overlayWindow.show();
+          } else {
+            overlayWindow.hide();
           }
         }
+        if (setupWindow) {
+          setupWindow.webContents.send('overlay-state', overlayVisible);
+        }
+        updateTrayMenu();
       },
-    },
-    { type: 'separator' },
-    {
-      label: '終了',
-      click: () => {
-        app.quit();
-      },
-    },
-  ]);
+    });
+  }
 
-  tray.setToolTip('Reacture Overlay');
+  menuItems.push({ type: 'separator' });
+  menuItems.push({
+    label: '終了',
+    click: () => {
+      app.quit();
+    },
+  });
+
+  const contextMenu = Menu.buildFromTemplate(menuItems);
+  tray.setToolTip(currentRoomId ? `Reacture - ルーム ${currentRoomId}` : 'Reacture Overlay');
   tray.setContextMenu(contextMenu);
 }
 
@@ -277,11 +446,16 @@ app.whenReady().then(() => {
 
   globalShortcut.register('CmdOrCtrl+Shift+R', () => {
     if (overlayWindow) {
-      if (overlayWindow.isVisible()) {
-        overlayWindow.hide();
-      } else {
+      overlayVisible = !overlayVisible;
+      if (overlayVisible) {
         overlayWindow.show();
+      } else {
+        overlayWindow.hide();
       }
+      if (setupWindow) {
+        setupWindow.webContents.send('overlay-state', overlayVisible);
+      }
+      updateTrayMenu();
     }
   });
 });
@@ -299,7 +473,8 @@ app.on('window-all-closed', () => {
   }
 });
 
-// IPC handlers
+// ===== IPC handlers =====
+
 ipcMain.on('create-request', (_event, config) => {
   console.log('[main] Create request:', config);
   createRoom(config.serverUrl);
@@ -318,18 +493,96 @@ ipcMain.on('get-sound-path', (event, filename) => {
   event.returnValue = path.join(__dirname, 'sounds', filename);
 });
 
-ipcMain.handle('generate-qr', async (_event, text) => {
-  return await QRCode.toDataURL(text, { width: 300, margin: 2 });
-});
-
 ipcMain.on('read-file-buffer', (event, filePath) => {
   try {
     const fs = require('fs');
     const buf = fs.readFileSync(filePath);
-    // Uint8Array に変換して返す（シリアライズ可能）
     event.returnValue = buf.toJSON().data;
   } catch (e) {
     console.warn('[main] Failed to read file:', filePath, e);
     event.returnValue = null;
+  }
+});
+
+// QRウィンドウを開く
+ipcMain.on('open-qr-window', () => {
+  openQRWindow();
+});
+
+// アンケートウィンドウを開く
+ipcMain.on('open-poll-window', () => {
+  openPollWindow();
+});
+
+// ルームを閉じる
+ipcMain.on('close-room', () => {
+  console.log('[main] Closing room');
+  currentRoomId = null;
+  overlayVisible = false;
+  updateTrayMenu();
+  if (socket) {
+    socket.disconnect();
+    socket = null;
+  }
+  if (overlayWindow) {
+    overlayWindow.hide();
+  }
+  closePollWindow();
+  if (qrWindow) {
+    qrWindow.close();
+    qrWindow = null;
+  }
+});
+
+// オーバーレイ表示/非表示
+ipcMain.on('overlay-toggle', (_event, visible) => {
+  overlayVisible = visible;
+  if (overlayWindow) {
+    if (visible) {
+      overlayWindow.show();
+    } else {
+      overlayWindow.hide();
+    }
+  }
+  updateTrayMenu();
+});
+
+// ボリューム変更
+ipcMain.on('volume-change', (_event, vol) => {
+  currentVolume = vol;
+  if (overlayWindow) {
+    overlayWindow.webContents.send('volume-changed', vol);
+  }
+});
+
+// アンケート作成
+ipcMain.on('poll-create', (_event, data) => {
+  if (socket && currentRoomId) {
+    console.log('[main] Creating poll:', data);
+    socket.emit('poll:create', { ...data, roomId: currentRoomId });
+  }
+});
+
+// アンケート終了
+ipcMain.on('poll-end', (_event, pollId) => {
+  if (socket && currentRoomId) {
+    console.log('[main] Ending poll:', pollId);
+    socket.emit('poll:end', { pollId, roomId: currentRoomId });
+  }
+});
+
+// カスタムリアクション設定
+ipcMain.on('custom-reaction-set', (_event, data) => {
+  if (socket && currentRoomId) {
+    console.log('[main] Setting custom reaction:', data);
+    socket.emit('custom-reaction:set', { ...data, roomId: currentRoomId });
+  }
+});
+
+// カスタムリアクション解除
+ipcMain.on('custom-reaction-remove', () => {
+  if (socket && currentRoomId) {
+    console.log('[main] Removing custom reaction');
+    socket.emit('custom-reaction:remove', { roomId: currentRoomId });
   }
 });

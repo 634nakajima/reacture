@@ -14,7 +14,7 @@ const REACTIONS = {
 // ===== 音声システム =====
 const audioCache = new Map();
 let audioContext = null;
-const volume = 0.5;
+let volume = 0.5;
 
 function getAudioContext() {
   if (!audioContext) {
@@ -45,6 +45,8 @@ const lastPlayedAt = new Map();
 const THROTTLE_MS = 100;
 
 async function playSound(filePath) {
+  if (volume === 0) return; // ミュート時は再生しない
+
   const now = Date.now();
   const last = lastPlayedAt.get(filePath) || 0;
   if (now - last < THROTTLE_MS) return;
@@ -135,6 +137,11 @@ window.electronAPI.onComment((comment) => {
 
 window.electronAPI.onRoomClosed(() => {
   // メインプロセスが処理するので特に何もしない
+});
+
+// ボリューム変更を受け取る
+window.electronAPI.onVolumeChange((vol) => {
+  volume = vol;
 });
 
 // 起動時にプリロード
