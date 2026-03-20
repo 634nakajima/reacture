@@ -590,7 +590,7 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
 
             <button
               onClick={() => setShowQA(!showQA)}
-              className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20 relative"
+              className="px-3 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all relative"
             >
               Q&A
               {questions.filter((q) => !q.resolved).length > 0 && (
@@ -602,16 +602,16 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
 
             <button
               onClick={() => setShowQR(!showQR)}
-              className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20"
+              className="px-3 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
             >
               QR
             </button>
 
             <button
               onClick={() => document.documentElement.requestFullscreen?.()}
-              className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20"
+              className="px-3 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
             >
-              ⛶
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
             </button>
 
             <span className="text-white/50 text-sm">👥 {userCount}</span>
