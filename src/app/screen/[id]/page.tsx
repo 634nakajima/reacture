@@ -10,8 +10,9 @@ import PollResults from '@/components/PollResults';
 import PollPanel from '@/components/PollPanel';
 import QRCodeDisplay from '@/components/QRCodeDisplay';
 import CustomReactionSetting from '@/components/CustomReactionSetting';
+import QADisplay from '@/components/QADisplay';
 import { REACTIONS } from '@/types';
-import type { ReactionEvent, CommentEvent, Poll, ReactionType, CustomReaction } from '@/types';
+import type { ReactionEvent, CommentEvent, Poll, ReactionType, CustomReaction, Question } from '@/types';
 
 type SlideMode = 'upload' | 'embed' | 'none';
 
@@ -34,6 +35,8 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
   const [pdfLoading, setPdfLoading] = useState(false);
   const [customReaction, setCustomReaction] = useState<CustomReaction | null>(null);
   const customReactionRef = useRef<CustomReaction | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [showQA, setShowQA] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const controlsTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -125,6 +128,31 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
       setActivePoll(poll);
     });
 
+    // Q&A
+    socket.on('qa:list', (list: Question[]) => {
+      setQuestions(list);
+    });
+
+    socket.on('qa:new', (question: Question) => {
+      setQuestions((prev) => [...prev, question]);
+    });
+
+    socket.on('qa:updated', (data: { questionId: string; votes: number }) => {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === data.questionId ? { ...q, votes: data.votes } : q))
+      );
+    });
+
+    socket.on('qa:resolved', (data: { questionId: string; resolved: boolean }) => {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === data.questionId ? { ...q, resolved: data.resolved } : q))
+      );
+    });
+
+    socket.on('qa:deleted', (data: { questionId: string }) => {
+      setQuestions((prev) => prev.filter((q) => q.id !== data.questionId));
+    });
+
     return () => {
       cleanupSocket();
     };
@@ -155,6 +183,22 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
     const socket = getSocket();
     socket.emit('poll:end', { roomId });
   }, [roomId]);
+
+  const handleResolveQuestion = useCallback(
+    (questionId: string) => {
+      const socket = getSocket();
+      socket.emit('qa:resolve', { roomId, questionId });
+    },
+    [roomId]
+  );
+
+  const handleDeleteQuestion = useCallback(
+    (questionId: string) => {
+      const socket = getSocket();
+      socket.emit('qa:delete', { roomId, questionId });
+    },
+    [roomId]
+  );
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -401,6 +445,18 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
         </div>
       )}
 
+      {/* Q&A */}
+      {showQA && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-50">
+          <QADisplay
+            questions={questions}
+            onResolve={handleResolveQuestion}
+            onDelete={handleDeleteQuestion}
+            onClose={() => setShowQA(false)}
+          />
+        </div>
+      )}
+
       {/* QRコード */}
       <QRCodeDisplay
         roomId={roomId}
@@ -495,6 +551,18 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
               onSet={handleSetCustomReaction}
               onRemove={handleRemoveCustomReaction}
             />
+
+            <button
+              onClick={() => setShowQA(!showQA)}
+              className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20 relative"
+            >
+              Q&A
+              {questions.filter((q) => !q.resolved).length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-blue-500 text-white text-[10px] font-bold rounded-full px-1">
+                  {questions.filter((q) => !q.resolved).length}
+                </span>
+              )}
+            </button>
 
             {!activePoll && (
               <PollPanel onCreatePoll={handleCreatePoll} />

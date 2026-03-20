@@ -38,6 +38,14 @@ export interface Poll {
   active: boolean;
 }
 
+export interface Question {
+  id: string;
+  text: string;
+  votes: number;
+  resolved: boolean;
+  createdAt: number;
+}
+
 export interface RoomState {
   roomId: string;
   userCount: number;

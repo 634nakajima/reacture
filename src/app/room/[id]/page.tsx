@@ -5,7 +5,8 @@ import { getSocket, cleanupSocket } from '@/lib/socket';
 import ReactionButton from '@/components/ReactionButton';
 import CommentInput from '@/components/CommentInput';
 import PollVote from '@/components/PollVote';
-import type { ReactionType, Poll, CustomReaction } from '@/types';
+import QASection from '@/components/QASection';
+import type { ReactionType, Poll, CustomReaction, Question } from '@/types';
 import { REACTIONS } from '@/types';
 
 export default function RoomPage({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +15,7 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
   const [userCount, setUserCount] = useState(0);
   const [activePoll, setActivePoll] = useState<Poll | null>(null);
   const [customReaction, setCustomReaction] = useState<CustomReaction | null>(null);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -48,6 +50,31 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
 
     socket.on('custom-reaction:updated', (data: CustomReaction | null) => {
       setCustomReaction(data);
+    });
+
+    // Q&A
+    socket.on('qa:list', (list: Question[]) => {
+      setQuestions(list);
+    });
+
+    socket.on('qa:new', (question: Question) => {
+      setQuestions((prev) => [...prev, question]);
+    });
+
+    socket.on('qa:updated', (data: { questionId: string; votes: number }) => {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === data.questionId ? { ...q, votes: data.votes } : q))
+      );
+    });
+
+    socket.on('qa:resolved', (data: { questionId: string; resolved: boolean }) => {
+      setQuestions((prev) =>
+        prev.map((q) => (q.id === data.questionId ? { ...q, resolved: data.resolved } : q))
+      );
+    });
+
+    socket.on('qa:deleted', (data: { questionId: string }) => {
+      setQuestions((prev) => prev.filter((q) => q.id !== data.questionId));
     });
 
     socket.on('room:closed', () => {
@@ -87,6 +114,22 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
     (pollId: string, optionIndex: number) => {
       const socket = getSocket();
       socket.emit('poll:vote', { roomId, pollId, optionIndex });
+    },
+    [roomId]
+  );
+
+  const handleQAPost = useCallback(
+    (text: string) => {
+      const socket = getSocket();
+      socket.emit('qa:post', { roomId, text });
+    },
+    [roomId]
+  );
+
+  const handleQAVote = useCallback(
+    (questionId: string) => {
+      const socket = getSocket();
+      socket.emit('qa:vote', { roomId, questionId });
     },
     [roomId]
   );
@@ -140,6 +183,9 @@ export default function RoomPage({ params }: { params: Promise<{ id: string }> }
             リアクションやコメントを送って<br />授業を盛り上げよう
           </p>
         </div>
+
+        {/* Q&A */}
+        <QASection questions={questions} onPost={handleQAPost} onVote={handleQAVote} />
 
         {/* アンケート */}
         {activePoll && activePoll.active && (

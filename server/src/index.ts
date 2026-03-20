@@ -43,12 +43,22 @@ interface CustomReaction {
   soundUrl: string; // クライアント側のblob URLまたはパス
 }
 
+interface Question {
+  id: string;
+  text: string;
+  votes: number;
+  resolved: boolean;
+  createdAt: number;
+  voters: Set<string>;
+}
+
 interface Room {
   id: string;
   hostSocketId: string;
   currentPage: number;
   activePoll: Poll | null;
   customReaction: CustomReaction | null;
+  questions: Question[];
 }
 
 const rooms = new Map<string, Room>();
@@ -108,6 +118,7 @@ io.on('connection', (socket) => {
       currentPage: 0,
       activePoll: null,
       customReaction: null,
+      questions: [],
     };
 
     rooms.set(roomId, room);
@@ -139,6 +150,12 @@ io.on('connection', (socket) => {
     }
     if (room.customReaction) {
       socket.emit('custom-reaction:updated', room.customReaction);
+    }
+
+    // 既存の質問一覧を送信（voters除外）
+    if (room.questions.length > 0) {
+      const questionsForClient = room.questions.map(({ voters, ...q }) => q);
+      socket.emit('qa:list', questionsForClient);
     }
 
     console.log(`User joined room ${roomId} (${userCount} users)`);
@@ -226,6 +243,74 @@ io.on('connection', (socket) => {
       };
       io.to(data.roomId).emit('custom-reaction:updated', room.customReaction);
     }
+  });
+
+  // Q&A: 質問投稿
+  socket.on('qa:post', (data: { roomId: string; text: string }) => {
+    const room = rooms.get(data.roomId);
+    if (!room) return;
+    const text = data.text.trim().slice(0, 200);
+    if (!text) return;
+
+    // 1ルームあたり100件上限
+    if (room.questions.length >= 100) {
+      // 古い回答済み質問から削除
+      const resolvedIdx = room.questions.findIndex((q) => q.resolved);
+      if (resolvedIdx !== -1) {
+        room.questions.splice(resolvedIdx, 1);
+      } else {
+        return; // 全部未回答なら追加不可
+      }
+    }
+
+    const question: Question = {
+      id: uuidv4(),
+      text,
+      votes: 0,
+      resolved: false,
+      createdAt: Date.now(),
+      voters: new Set(),
+    };
+    room.questions.push(question);
+
+    const { voters, ...questionData } = question;
+    io.to(data.roomId).emit('qa:new', questionData);
+  });
+
+  // Q&A: いいね
+  socket.on('qa:vote', (data: { roomId: string; questionId: string }) => {
+    const room = rooms.get(data.roomId);
+    if (!room) return;
+    const question = room.questions.find((q) => q.id === data.questionId);
+    if (!question) return;
+    if (question.voters.has(socket.id)) return; // 二重いいね防止
+
+    question.voters.add(socket.id);
+    question.votes++;
+
+    io.to(data.roomId).emit('qa:updated', { questionId: question.id, votes: question.votes });
+  });
+
+  // Q&A: 回答済みマーク（ホストのみ）
+  socket.on('qa:resolve', (data: { roomId: string; questionId: string }) => {
+    const room = rooms.get(data.roomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    const question = room.questions.find((q) => q.id === data.questionId);
+    if (!question) return;
+
+    question.resolved = !question.resolved; // トグル
+    io.to(data.roomId).emit('qa:resolved', { questionId: question.id, resolved: question.resolved });
+  });
+
+  // Q&A: 質問削除（ホストのみ）
+  socket.on('qa:delete', (data: { roomId: string; questionId: string }) => {
+    const room = rooms.get(data.roomId);
+    if (!room || room.hostSocketId !== socket.id) return;
+    const idx = room.questions.findIndex((q) => q.id === data.questionId);
+    if (idx === -1) return;
+
+    room.questions.splice(idx, 1);
+    io.to(data.roomId).emit('qa:deleted', { questionId: data.questionId });
   });
 
   // カスタムリアクション削除（ホストのみ）
