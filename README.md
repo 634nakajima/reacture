@@ -127,9 +127,63 @@ npm run dev
 
 mp3 / wav / ogg / m4a に対応しています。
 
+## Reacture Desktop（macOS アプリ）
+
+PowerPoint・Keynote・PDF など**任意のアプリの上に**リアクションやコメントをオーバーレイ表示できる macOS ネイティブアプリです。ブラウザ版とは異なり、普段のプレゼンソフトをそのまま使いながら教室のインタラクションを実現します。
+
+### 主な機能
+
+- **透明オーバーレイ** — 全画面透明ウィンドウでリアクション絵文字・ニコニコ風コメントを表示。マウス操作を透過するためスライド操作に干渉しない
+- **ルーム作成 / 管理** — 設定画面からワンクリックでルームを作成。トレイメニューからも操作可能
+- **QRコード表示** — 別ウィンドウ（800×1000）で大きく表示。教室のプロジェクターに映しやすいサイズ
+- **アンケート** — 設定画面から設問を作成。投票状況・結果は別ウィンドウでリアルタイム表示
+- **カスタムリアクション** — 任意の絵文字を1つ追加可能
+- **効果音** — リアクションに応じた効果音を再生（ボリューム調整可）
+- **トレイメニュー** — メニューバーからルーム管理・オーバーレイ ON/OFF・QR表示/非表示を操作。設定画面を閉じていても全機能を制御可能
+- **ショートカット** — `Cmd+Shift+R` でオーバーレイの表示/非表示を切り替え
+
+### インストール
+
+ビルド済みアプリ（`desktop/dist/mac-arm64/Reacture Desktop.app`）を `Applications` フォルダにコピーするか、ソースから実行します。
+
+### ソースからの起動
+
+```bash
+cd desktop
+npm install
+npm start
+```
+
+### macOS アプリのビルド
+
+```bash
+cd desktop
+npm run build
+# → desktop/dist/mac-arm64/Reacture Desktop.app が生成される
+```
+
+### アーキテクチャ
+
+```
+┌────────────────────────────┐
+│  Electron Main Process     │
+│  ├── Socket.IO Client      │  ← サーバーとの通信
+│  ├── Setup Window          │  ← ルーム管理・設定UI
+│  ├── Overlay Window        │  ← 透明・全画面・最前面
+│  ├── QR Window             │  ← 別ウィンドウ表示
+│  ├── Poll Window           │  ← 投票/結果の別ウィンドウ
+│  └── Tray Menu             │  ← メニューバー操作
+└────────────────────────────┘
+```
+
+- Socket.IO の接続はメインプロセスで管理し、IPC 経由で各ウィンドウにイベントを配信
+- オーバーレイは `alwaysOnTop: true` + `transparent: true` + `setIgnoreMouseEvents(true)` で実現
+- 設定画面を閉じてもトレイに常駐し、再表示時に状態を復元
+
 ## 技術スタック
 
 - **フロントエンド**: Next.js 16 / React 19 / Tailwind CSS 4 / TypeScript
+- **デスクトップ**: Electron + electron-builder（macOS）
 - **リアルタイム通信**: Socket.IO
 - **PDF表示**: PDF.js
 - **デプロイ**: Vercel（フロントエンド）+ Render（Socket.IO サーバー）
