@@ -119,8 +119,12 @@ export default function Home() {
             {error && <p className="text-red-400 text-sm">{error}</p>}
             <button
               type="submit"
-              disabled={roomCode.length === 0 || joining}
-              className="w-full py-3 bg-white/10 hover:bg-white/20 rounded-xl text-white font-medium transition-colors disabled:opacity-30"
+              disabled={roomCode.length < 4 || joining}
+              className={`w-full py-3 rounded-xl text-white font-bold transition-all ${
+                roomCode.length >= 4
+                  ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 active:scale-95'
+                  : 'bg-white/10 opacity-30'
+              } disabled:opacity-30`}
             >
               {joining ? '接続中...' : '参加'}
             </button>
