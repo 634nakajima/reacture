@@ -79,6 +79,11 @@ function resetToInitial() {
   updateOverlayBtn();
 }
 
+// トレイメニューからルームを閉じた場合
+window.electronAPI.onRoomClosed(() => {
+  resetToInitial();
+});
+
 // ===== メインプロセスからの接続結果 =====
 window.electronAPI.onConnectionResult((result) => {
   console.log('[setup] Received result:', result);

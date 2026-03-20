@@ -12,7 +12,7 @@
     "productName": "Reacture Desktop",
     "mac": {
       "category": "public.app-category.education",
-      "icon": "../public/logo.png",
+      "icon": "icon.icns",
       "target": "dir"
     },
     "files": [
@@ -25,6 +25,7 @@
       "overlay.css",
       "qr-window.html",
       "poll-window.html",
+      "logo.png",
       "sounds/**/*",
       "node_modules/**/*"
     ],

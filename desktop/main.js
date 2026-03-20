@@ -51,8 +51,11 @@ function createSetupWindow() {
     }
   });
 
+  setupWindow.on('show', () => updateTrayMenu());
+  setupWindow.on('hide', () => updateTrayMenu());
   setupWindow.on('closed', () => {
     setupWindow = null;
+    updateTrayMenu();
   });
 }
 
@@ -114,6 +117,7 @@ function openQRWindow() {
 
   qrWindow.setMenuBarVisibility(false);
   qrWindow.loadFile('qr-window.html');
+  updateTrayMenu();
 
   qrWindow.webContents.on('did-finish-load', async () => {
     const joinUrl = WEB_URL + '/room/' + currentRoomId;
@@ -127,6 +131,7 @@ function openQRWindow() {
 
   qrWindow.on('closed', () => {
     qrWindow = null;
+    updateTrayMenu();
   });
 }
 
@@ -367,7 +372,7 @@ function setupSocketListeners() {
 
 function createTray() {
   const icon = nativeImage.createFromPath(
-    path.join(__dirname, '..', 'public', 'logo.png')
+    path.join(__dirname, 'logo.png')
   );
   const trayIcon = icon.resize({ width: 16, height: 16 });
   tray = new Tray(trayIcon);
@@ -379,29 +384,73 @@ function updateTrayMenu() {
 
   const menuItems = [];
 
-  // ルーム情報
   if (currentRoomId) {
     menuItems.push({
       label: `ルーム: ${currentRoomId}`,
       enabled: false,
     });
     menuItems.push({
-      label: 'QRコードを表示',
+      label: qrWindow ? 'QRコードを非表示' : 'QRコードを表示',
       click: () => {
-        openQRWindow();
+        if (qrWindow) {
+          qrWindow.close();
+        } else {
+          openQRWindow();
+        }
+      },
+    });
+    menuItems.push({
+      label: 'ルームを閉じる',
+      click: () => {
+        currentRoomId = null;
+        overlayVisible = false;
+        if (socket) {
+          socket.disconnect();
+          socket = null;
+        }
+        if (overlayWindow) overlayWindow.hide();
+        closePollWindow();
+        if (qrWindow) { qrWindow.close(); qrWindow = null; }
+        if (setupWindow) {
+          setupWindow.show();
+          setupWindow.focus();
+          setupWindow.webContents.send('room-closed');
+        }
+        updateTrayMenu();
+      },
+    });
+    menuItems.push({ type: 'separator' });
+  } else {
+    menuItems.push({
+      label: 'ルームを作成',
+      click: () => {
+        createRoom('https://reacture-server.onrender.com');
+        // 設定画面も表示
+        if (setupWindow) {
+          setupWindow.show();
+          setupWindow.focus();
+        } else {
+          createSetupWindow();
+        }
       },
     });
     menuItems.push({ type: 'separator' });
   }
 
+  const setupVisible = setupWindow && setupWindow.isVisible();
   menuItems.push({
-    label: '設定画面を表示',
+    label: setupVisible ? '設定画面を非表示' : '設定画面を表示',
     click: () => {
-      if (setupWindow) {
+      if (setupVisible) {
+        setupWindow.hide();
+        updateTrayMenu();
+      } else if (setupWindow) {
         setupWindow.show();
         setupWindow.focus();
+        updateTrayMenu();
       } else {
         createSetupWindow();
+        updateTrayMenu();
       }
     },
   });
