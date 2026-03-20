@@ -313,6 +313,17 @@ io.on('connection', (socket) => {
     io.to(data.roomId).emit('qa:deleted', { questionId: data.questionId });
   });
 
+  // ルームを明示的に閉じる（ホストのみ）
+  socket.on('room:close', (data: { roomId: string }) => {
+    const room = rooms.get(data.roomId);
+    if (room && room.hostSocketId === socket.id) {
+      io.to(data.roomId).emit('room:closed');
+      rooms.delete(data.roomId);
+      socket.leave(data.roomId);
+      console.log(`Room ${data.roomId} explicitly closed by host`);
+    }
+  });
+
   // カスタムリアクション削除（ホストのみ）
   socket.on('custom-reaction:remove', (data: { roomId: string }) => {
     const room = rooms.get(data.roomId);

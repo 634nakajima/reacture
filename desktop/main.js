@@ -530,12 +530,11 @@ function updateTrayMenu() {
     menuItems.push({
       label: 'ルームを閉じる',
       click: () => {
+        if (socket && currentRoomId) {
+          socket.emit('room:close', { roomId: currentRoomId });
+        }
         currentRoomId = null;
         overlayVisible = false;
-        if (socket) {
-          socket.disconnect();
-          socket = null;
-        }
         if (overlayWindow) overlayWindow.hide();
         closePollWindow();
         closeQAWindow();
@@ -545,6 +544,14 @@ function updateTrayMenu() {
           setupWindow.show();
           setupWindow.focus();
           setupWindow.webContents.send('room-closed');
+        }
+        if (socket) {
+          setTimeout(() => {
+            if (socket) {
+              socket.disconnect();
+              socket = null;
+            }
+          }, 300);
         }
         updateTrayMenu();
       },
@@ -696,12 +703,20 @@ ipcMain.on('open-poll-window', () => {
 // ルームを閉じる
 ipcMain.on('close-room', () => {
   console.log('[main] Closing room');
+  if (socket && currentRoomId) {
+    socket.emit('room:close', { roomId: currentRoomId });
+  }
   currentRoomId = null;
   overlayVisible = false;
   updateTrayMenu();
   if (socket) {
-    socket.disconnect();
-    socket = null;
+    // サーバーへの送信を確実にするため少し遅延して切断
+    setTimeout(() => {
+      if (socket) {
+        socket.disconnect();
+        socket = null;
+      }
+    }, 300);
   }
   if (overlayWindow) {
     overlayWindow.hide();

@@ -153,7 +153,15 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
       setQuestions((prev) => prev.filter((q) => q.id !== data.questionId));
     });
 
+    // ページ離脱時にルームを明示的に閉じる
+    const handleBeforeUnload = () => {
+      socket.emit('room:close', { roomId });
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      socket.emit('room:close', { roomId });
       cleanupSocket();
     };
   }, [roomId]);
