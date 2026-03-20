@@ -91,7 +91,7 @@ export default function Home() {
         {/* 先生：ルーム作成（PCのみ表示） */}
         {!isMobile && (
           <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-            <h2 className="text-lg font-semibold mb-4">🎓 先生・発表者</h2>
+            <h2 className="text-lg font-semibold mb-4">発表する</h2>
             <button
               onClick={createRoom}
               disabled={creating}
@@ -104,7 +104,7 @@ export default function Home() {
 
         {/* 学生：ルーム参加 */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-lg font-semibold mb-4">{isMobile ? '🎓 ルームに参加' : '📱 参加する'}</h2>
+          <h2 className="text-lg font-semibold mb-4">{isMobile ? 'ルームに参加' : '参加する'}</h2>
           <form onSubmit={joinRoom} className="space-y-3">
             <input
               type="text"
