@@ -108,7 +108,7 @@ export default function PollPanel({
           </button>
           <button
             type="submit"
-            className="px-6 py-2 bg-purple-600 text-white rounded-lg text-base"
+            className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-lg text-base font-bold transition-all"
           >
             開始
           </button>
