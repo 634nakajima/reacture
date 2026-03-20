@@ -541,16 +541,6 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
           </div>
 
           <div className="flex items-center gap-3">
-            <CustomReactionSetting
-              current={customReaction}
-              onSet={handleSetCustomReaction}
-              onRemove={handleRemoveCustomReaction}
-            />
-
-            {!activePoll && (
-              <PollPanel onCreatePoll={handleCreatePoll} />
-            )}
-
             <div className="flex items-center gap-2 bg-white/10 rounded-lg px-3 py-2">
               <button
                 onClick={() => setVolume(volume > 0 ? 0 : 0.5)}
@@ -574,6 +564,16 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
                 className="w-20 h-1 accent-white cursor-pointer"
               />
             </div>
+
+            <CustomReactionSetting
+              current={customReaction}
+              onSet={handleSetCustomReaction}
+              onRemove={handleRemoveCustomReaction}
+            />
+
+            {!activePoll && (
+              <PollPanel onCreatePoll={handleCreatePoll} />
+            )}
 
             <button
               onClick={() => setShowQA(!showQA)}
