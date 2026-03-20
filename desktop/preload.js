@@ -54,4 +54,23 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // カスタムリアクション
   sendCustomReactionSet: (data) => ipcRenderer.send('custom-reaction-set', data),
   sendCustomReactionRemove: () => ipcRenderer.send('custom-reaction-remove'),
+
+  // Q&A
+  openQAWindow: () => ipcRenderer.send('open-qa-window'),
+  sendQAResolve: (questionId) => ipcRenderer.send('qa-resolve', questionId),
+  sendQADelete: (questionId) => ipcRenderer.send('qa-delete', questionId),
+  onQAList: (callback) =>
+    ipcRenderer.on('qa-list', (_event, data) => callback(data)),
+  onQANew: (callback) =>
+    ipcRenderer.on('qa-new', (_event, data) => callback(data)),
+  onQAUpdated: (callback) =>
+    ipcRenderer.on('qa-updated', (_event, data) => callback(data)),
+  onQAResolved: (callback) =>
+    ipcRenderer.on('qa-resolved', (_event, data) => callback(data)),
+  onQADeleted: (callback) =>
+    ipcRenderer.on('qa-deleted', (_event, data) => callback(data)),
+  onQACount: (callback) =>
+    ipcRenderer.on('qa-count', (_event, count) => callback(count)),
+  onQAToast: (callback) =>
+    ipcRenderer.on('qa-toast', (_event, data) => callback(data)),
 });

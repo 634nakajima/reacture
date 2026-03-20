@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Q&A - Reacture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f1a;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: bold;
+    }
+    .header-count {
+      font-size: 14px;
+      color: rgba(255,255,255,0.4);
+    }
+    .header-count .active {
+      color: #60a5fa;
+      font-weight: bold;
+    }
+
+    .question-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+    }
+
+    .question-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      padding: 16px 20px;
+      margin: 4px 8px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.03);
+      transition: background 0.2s;
+    }
+    .question-item:hover {
+      background: rgba(255,255,255,0.06);
+    }
+    .question-item.resolved {
+      opacity: 0.4;
+    }
+    .question-item.new-highlight {
+      animation: highlight-fade 2s ease-out;
+    }
+
+    @keyframes highlight-fade {
+      0% { background: rgba(96, 165, 250, 0.15); }
+      100% { background: rgba(255,255,255,0.03); }
+    }
+
+    .vote-section {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 56px;
+      padding-top: 2px;
+    }
+    .vote-emoji {
+      font-size: 20px;
+    }
+    .vote-count {
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    .question-text {
+      flex: 1;
+      font-size: 18px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .question-text.resolved-text {
+      text-decoration: line-through;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .question-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-top: 2px;
+    }
+    .action-btn {
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: none;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .resolve-btn {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.5);
+    }
+    .resolve-btn:hover {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34d399;
+    }
+    .resolve-btn.resolved {
+      background: rgba(52, 211, 153, 0.2);
+      color: #34d399;
+    }
+    .delete-btn {
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.2);
+      font-size: 14px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .delete-btn:hover {
+      color: #f87171;
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: rgba(255,255,255,0.25);
+    }
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    .empty-title {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .empty-subtitle {
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-left">
+      <span class="header-title">Q&A</span>
+      <span class="header-count" id="headerCount"></span>
+    </div>
+  </div>
+
+  <div class="question-list" id="questionList"></div>
+
+  <div class="empty-state" id="emptyState">
+    <div class="empty-icon">💬</div>
+    <div class="empty-title">まだ質問はありません</div>
+    <div class="empty-subtitle">学生がQ&Aから質問を投稿するとここに表示されます</div>
+  </div>
+
+  <script>
+    let questions = [];
+
+    function escapeHtml(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function render(highlightId) {
+      const listEl = document.getElementById('questionList');
+      const emptyEl = document.getElementById('emptyState');
+      const countEl = document.getElementById('headerCount');
+
+      const unresolvedCount = questions.filter(q => !q.resolved).length;
+      const totalCount = questions.length;
+
+      if (totalCount === 0) {
+        listEl.style.display = 'none';
+        emptyEl.style.display = 'flex';
+        countEl.textContent = '';
+        return;
+      }
+
+      listEl.style.display = 'block';
+      emptyEl.style.display = 'none';
+
+      if (unresolvedCount > 0) {
+        countEl.innerHTML = `<span class="active">${unresolvedCount}件</span>` +
+          (totalCount > unresolvedCount ? ` / ${totalCount}件` : '');
+      } else {
+        countEl.textContent = `${totalCount}件（すべて回答済み）`;
+      }
+
+      // ソート: 未回答→回答済み、いいね数降順
+      const sorted = [...questions].sort((a, b) => {
+        if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
+        return b.votes - a.votes;
+      });
+
+      listEl.innerHTML = '';
+      sorted.forEach(q => {
+        const item = document.createElement('div');
+        item.className = 'question-item' + (q.resolved ? ' resolved' : '') + (q.id === highlightId ? ' new-highlight' : '');
+        item.innerHTML = `
+          <div class="vote-section">
+            <span class="vote-emoji">👍</span>
+            <span class="vote-count">${q.votes}</span>
+          </div>
+          <div class="question-text${q.resolved ? ' resolved-text' : ''}">${escapeHtml(q.text)}</div>
+          <div class="question-actions">
+            <button class="action-btn resolve-btn${q.resolved ? ' resolved' : ''}" data-id="${q.id}">
+              ${q.resolved ? '✓ 済' : '回答済み'}
+            </button>
+            <button class="delete-btn" data-id="${q.id}">🗑</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+
+      // イベントリスナー
+      listEl.querySelectorAll('.resolve-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.electronAPI.sendQAResolve(btn.dataset.id);
+        });
+      });
+      listEl.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.electronAPI.sendQADelete(btn.dataset.id);
+        });
+      });
+    }
+
+    // 既存質問リスト
+    window.electronAPI.onQAList((list) => {
+      questions = list;
+      render();
+    });
+
+    // 新着質問
+    window.electronAPI.onQANew((q) => {
+      questions.push(q);
+      render(q.id);
+    });
+
+    // いいね更新
+    window.electronAPI.onQAUpdated((data) => {
+      const q = questions.find(q => q.id === data.questionId);
+      if (q) q.votes = data.votes;
+      render();
+    });
+
+    // 回答済み
+    window.electronAPI.onQAResolved((data) => {
+      const q = questions.find(q => q.id === data.questionId);
+      if (q) q.resolved = data.resolved;
+      render();
+    });
+
+    // 削除
+    window.electronAPI.onQADeleted((data) => {
+      questions = questions.filter(q => q.id !== data.questionId);
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

@@ -139,6 +139,34 @@ window.electronAPI.onRoomClosed(() => {
   // メインプロセスが処理するので特に何もしない
 });
 
+// Q&A トースト通知
+const qaToastsContainer = document.getElementById('qa-toasts');
+let toastCount = 0;
+
+window.electronAPI.onQAToast((question) => {
+  if (toastCount >= 3) return; // 最大3個まで同時表示
+
+  const toast = document.createElement('div');
+  toast.className = 'qa-toast';
+  toast.innerHTML = `
+    <div class="qa-toast-label">💬 新しい質問</div>
+    <div class="qa-toast-text">${escapeHtml(question.text)}</div>
+  `;
+  qaToastsContainer.appendChild(toast);
+  toastCount++;
+
+  setTimeout(() => {
+    toast.remove();
+    toastCount--;
+  }, 5000);
+});
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 // ボリューム変更を受け取る
 window.electronAPI.onVolumeChange((vol) => {
   volume = vol;

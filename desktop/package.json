@@ -25,6 +25,7 @@
       "overlay.css",
       "qr-window.html",
       "poll-window.html",
+      "qa-window.html",
       "logo.png",
       "sounds/**/*",
       "node_modules/**/*"

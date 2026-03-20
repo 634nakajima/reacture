@@ -37,6 +37,10 @@ const customSetBtn = document.getElementById('customSetBtn');
 const customRemoveBtn = document.getElementById('customRemoveBtn');
 const customCloseBtn = document.getElementById('customCloseBtn');
 
+// Q&A
+const qaOpenBtn = document.getElementById('qaOpenBtn');
+const qaBadge = document.getElementById('qaBadge');
+
 let currentRoomId = null;
 let overlayVisible = true;
 let currentVolume = 0.5;
@@ -316,4 +320,18 @@ customRemoveBtn.addEventListener('click', () => {
   customModal.classList.remove('show');
   statusEl.textContent = 'カスタムリアクションを解除しました';
   statusEl.className = 'status success';
+});
+
+// ===== Q&A =====
+qaOpenBtn.addEventListener('click', () => {
+  window.electronAPI.openQAWindow();
+});
+
+window.electronAPI.onQACount((count) => {
+  if (count > 0) {
+    qaBadge.textContent = count;
+    qaBadge.style.display = 'inline-block';
+  } else {
+    qaBadge.style.display = 'none';
+  }
 });

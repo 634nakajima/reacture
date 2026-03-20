@@ -7,6 +7,7 @@ const {
   Tray,
   Menu,
   nativeImage,
+  Notification,
 } = require('electron');
 const path = require('path');
 const { io } = require('socket.io-client');
@@ -16,11 +17,13 @@ let setupWindow = null;
 let overlayWindow = null;
 let qrWindow = null;
 let pollWindow = null;
+let qaWindow = null;
 let tray = null;
 let socket = null;
 let currentVolume = 0.5;
 let currentRoomId = null;
 let overlayVisible = false;
+let questions = [];
 
 const WEB_URL = 'https://reacture-alpha.vercel.app';
 
@@ -161,6 +164,50 @@ function openPollWindow() {
   pollWindow.on('closed', () => {
     pollWindow = null;
   });
+}
+
+function openQAWindow() {
+  if (qaWindow) {
+    qaWindow.focus();
+    return;
+  }
+
+  qaWindow = new BrowserWindow({
+    width: 700,
+    height: 900,
+    resizable: true,
+    frame: true,
+    title: 'Q&A - Reacture',
+    center: true,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  qaWindow.setMenuBarVisibility(false);
+  qaWindow.loadFile('qa-window.html');
+  updateTrayMenu();
+
+  qaWindow.webContents.on('did-finish-load', () => {
+    if (questions.length > 0) {
+      const questionsForClient = questions.map(({ voters, ...q }) => q);
+      qaWindow.webContents.send('qa-list', questionsForClient);
+    }
+  });
+
+  qaWindow.on('closed', () => {
+    qaWindow = null;
+    updateTrayMenu();
+  });
+}
+
+function closeQAWindow() {
+  if (qaWindow) {
+    qaWindow.close();
+    qaWindow = null;
+  }
 }
 
 function closePollWindow() {
@@ -330,6 +377,64 @@ function setupSocketListeners() {
     }
   });
 
+  // Q&A イベント
+  socket.on('qa:list', (list) => {
+    questions = list.map((q) => ({ ...q, voters: new Set() }));
+    if (qaWindow) {
+      qaWindow.webContents.send('qa-list', list);
+    }
+    broadcastQACount();
+  });
+
+  socket.on('qa:new', (question) => {
+    questions.push({ ...question, voters: new Set() });
+    if (qaWindow) {
+      qaWindow.webContents.send('qa-new', question);
+    }
+    // オーバーレイにトースト通知
+    if (overlayWindow && overlayVisible) {
+      overlayWindow.webContents.send('qa-toast', question);
+    }
+    // macOS デスクトップ通知
+    if (Notification.isSupported()) {
+      const notif = new Notification({
+        title: 'Q&A - 新しい質問',
+        body: question.text.length > 80 ? question.text.slice(0, 80) + '...' : question.text,
+        silent: true,
+      });
+      notif.on('click', () => {
+        openQAWindow();
+      });
+      notif.show();
+    }
+    broadcastQACount();
+  });
+
+  socket.on('qa:updated', (data) => {
+    const q = questions.find((q) => q.id === data.questionId);
+    if (q) q.votes = data.votes;
+    if (qaWindow) {
+      qaWindow.webContents.send('qa-updated', data);
+    }
+  });
+
+  socket.on('qa:resolved', (data) => {
+    const q = questions.find((q) => q.id === data.questionId);
+    if (q) q.resolved = data.resolved;
+    if (qaWindow) {
+      qaWindow.webContents.send('qa-resolved', data);
+    }
+    broadcastQACount();
+  });
+
+  socket.on('qa:deleted', (data) => {
+    questions = questions.filter((q) => q.id !== data.questionId);
+    if (qaWindow) {
+      qaWindow.webContents.send('qa-deleted', data);
+    }
+    broadcastQACount();
+  });
+
   socket.on('room:closed', () => {
     console.log('[main] Room closed');
     currentRoomId = null;
@@ -339,6 +444,8 @@ function setupSocketListeners() {
       overlayWindow.hide();
     }
     closePollWindow();
+    closeQAWindow();
+    questions = [];
     if (qrWindow) {
       qrWindow.close();
       qrWindow = null;
@@ -370,6 +477,14 @@ function setupSocketListeners() {
   });
 }
 
+function broadcastQACount() {
+  const count = questions.filter((q) => !q.resolved).length;
+  if (setupWindow) {
+    setupWindow.webContents.send('qa-count', count);
+  }
+  updateTrayMenu();
+}
+
 function createTray() {
   const icon = nativeImage.createFromPath(
     path.join(__dirname, 'logo.png')
@@ -399,6 +514,19 @@ function updateTrayMenu() {
         }
       },
     });
+    const qaCount = questions.filter((q) => !q.resolved).length;
+    menuItems.push({
+      label: qaWindow
+        ? 'Q&Aを非表示'
+        : `Q&Aを表示${qaCount > 0 ? `（${qaCount}件）` : ''}`,
+      click: () => {
+        if (qaWindow) {
+          qaWindow.close();
+        } else {
+          openQAWindow();
+        }
+      },
+    });
     menuItems.push({
       label: 'ルームを閉じる',
       click: () => {
@@ -410,6 +538,8 @@ function updateTrayMenu() {
         }
         if (overlayWindow) overlayWindow.hide();
         closePollWindow();
+        closeQAWindow();
+        questions = [];
         if (qrWindow) { qrWindow.close(); qrWindow = null; }
         if (setupWindow) {
           setupWindow.show();
@@ -577,6 +707,8 @@ ipcMain.on('close-room', () => {
     overlayWindow.hide();
   }
   closePollWindow();
+  closeQAWindow();
+  questions = [];
   if (qrWindow) {
     qrWindow.close();
     qrWindow = null;
@@ -633,5 +765,24 @@ ipcMain.on('custom-reaction-remove', () => {
   if (socket && currentRoomId) {
     console.log('[main] Removing custom reaction');
     socket.emit('custom-reaction:remove', { roomId: currentRoomId });
+  }
+});
+
+// Q&Aウィンドウを開く
+ipcMain.on('open-qa-window', () => {
+  openQAWindow();
+});
+
+// Q&A: 回答済みマーク
+ipcMain.on('qa-resolve', (_event, questionId) => {
+  if (socket && currentRoomId) {
+    socket.emit('qa:resolve', { roomId: currentRoomId, questionId });
+  }
+});
+
+// Q&A: 質問削除
+ipcMain.on('qa-delete', (_event, questionId) => {
+  if (socket && currentRoomId) {
+    socket.emit('qa:delete', { roomId: currentRoomId, questionId });
   }
 });
