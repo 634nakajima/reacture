@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reacture — 授業をもっとインタラクティブに</title>
+  <meta name="description" content="Reactureは、リアクション・コメント・効果音で教室の空気をリアルタイムに可視化するオープンソースの授業インタラクションツールです。" />
+  <meta property="og:title" content="Reacture — 授業をもっとインタラクティブに" />
+  <meta property="og:description" content="リアクション・コメント・効果音で教室の空気をリアルタイムに可視化するオープンソースの授業インタラクションツール" />
+  <meta property="og:type" content="website" />
+  <link rel="icon" href="logo.png" />
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08);
+      --text: #e4e4e7;
+      --text-muted: rgba(255,255,255,0.5);
+      --accent-blue: #3b82f6;
+      --accent-purple: #7c3aed;
+      --accent-pink: #ec4899;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      overflow-x: hidden;
+    }
+
+    /* Background glow */
+    .bg-glow {
+      position: fixed;
+      top: -40%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(124,58,237,0.12) 0%, rgba(59,130,246,0.06) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Header */
+    header {
+      padding: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .header-logo img { width: 32px; height: 32px; }
+    .header-logo span {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(to right, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .header-links { display: flex; gap: 20px; align-items: center; }
+    .header-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 14px;
+      transition: color 0.2s;
+    }
+    .header-links a:hover { color: #fff; }
+    .header-links .btn-sm {
+      padding: 6px 16px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--text);
+    }
+    .header-links .btn-sm:hover { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); }
+
+    /* Hero */
+    .hero {
+      text-align: center;
+      padding: 100px 0 80px;
+    }
+    .hero-logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(40px, 8vw, 72px);
+      font-weight: 800;
+      background: linear-gradient(to right, var(--accent-blue), var(--accent-purple), var(--accent-pink));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .hero .subtitle {
+      font-size: clamp(16px, 3vw, 22px);
+      color: var(--text-muted);
+      margin-top: 16px;
+      max-width: 560px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .hero-buttons {
+      margin-top: 40px;
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+      color: #fff;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-secondary {
+      border: 1.5px solid rgba(255,255,255,0.15);
+      color: var(--text);
+      background: transparent;
+    }
+    .btn-secondary:hover { border-color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.05); }
+    .btn svg { width: 18px; height: 18px; }
+
+    /* Section */
+    section { padding: 80px 0; }
+    .section-title {
+      text-align: center;
+      font-size: 32px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .section-desc {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 16px;
+      max-width: 520px;
+      margin: 0 auto 48px;
+    }
+
+    /* Features grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.2s;
+    }
+    .feature-card:hover { border-color: rgba(255,255,255,0.15); }
+    .feature-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+    .feature-card h3 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .feature-card p {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* Comparison */
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    .comparison-table th, .comparison-table td {
+      padding: 14px 16px;
+      text-align: center;
+      border-bottom: 1px solid var(--border);
+    }
+    .comparison-table th {
+      color: var(--text-muted);
+      font-weight: 500;
+      font-size: 13px;
+    }
+    .comparison-table th:first-child, .comparison-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+    .comparison-table .highlight {
+      background: rgba(124,58,237,0.08);
+    }
+    .comparison-table .highlight th {
+      color: var(--text);
+      font-weight: 700;
+    }
+    .check { color: #4ade80; }
+    .cross { color: rgba(255,255,255,0.2); }
+
+    /* How it works */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 24px;
+      counter-reset: step;
+    }
+    .step {
+      text-align: center;
+      padding: 24px;
+    }
+    .step::before {
+      counter-increment: step;
+      content: counter(step);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(to right, var(--accent-blue), var(--accent-purple));
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      margin: 0 auto 16px;
+    }
+    .step h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .step p {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* Architecture */
+    .arch-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .arch-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+    }
+    .arch-card h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .arch-card .tech {
+      font-size: 12px;
+      color: var(--accent-purple);
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .arch-card p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    /* CTA */
+    .cta {
+      text-align: center;
+      padding: 80px 0 100px;
+    }
+    .cta h2 {
+      font-size: 28px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+    .cta p {
+      color: var(--text-muted);
+      margin-bottom: 32px;
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: #fff; }
+
+    /* Mobile */
+    @media (max-width: 640px) {
+      .hero { padding: 60px 0 50px; }
+      section { padding: 50px 0; }
+      .header-links .hide-mobile { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <div class="container">
+    <header>
+      <a href="#" class="header-logo">
+        <img src="logo.png" alt="Reacture" />
+        <span>Reacture</span>
+      </a>
+      <div class="header-links">
+        <a href="#features" class="hide-mobile">Features</a>
+        <a href="#how" class="hide-mobile">How it works</a>
+        <a href="https://github.com/634nakajima/reacture" class="btn-sm">GitHub</a>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <div class="hero">
+      <img src="logo.png" alt="" class="hero-logo" />
+      <h1>Reacture</h1>
+      <p class="subtitle">
+        リアクション・コメント・効果音で<br />教室の空気をリアルタイムに可視化する<br />オープンソースの授業インタラクションツール
+      </p>
+      <div class="hero-buttons">
+        <a href="https://github.com/634nakajima/reacture/releases" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Desktop App
+        </a>
+        <a href="https://github.com/634nakajima/reacture" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          Source Code
+        </a>
+      </div>
+    </div>
+
+    <!-- Features -->
+    <section id="features">
+      <h2 class="section-title">Features</h2>
+      <p class="section-desc">対面授業の「教室の盛り上がり」を創出する、リアルタイムインタラクション機能</p>
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(59,130,246,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#3b82f6"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>
+          </div>
+          <h3>絵文字リアクション</h3>
+          <p>学生がスマホからワンタップでリアクションを送信。画面上にアニメーション表示されます。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(124,58,237,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#7c3aed"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+          </div>
+          <h3>効果音</h3>
+          <p>リアクションに応じた効果音を再生。教室の盛り上がりを聴覚的にも演出します。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(236,72,153,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#ec4899"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+          </div>
+          <h3>ニコニコ風コメント</h3>
+          <p>学生からのコメントがスライド上を右から左へ流れるように表示されます。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(74,222,128,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#4ade80"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>
+          </div>
+          <h3>アンケート</h3>
+          <p>リアルタイム投票機能。結果はグラフで即座に可視化されます。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(251,191,36,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#fbbf24"><path d="M20 6h-1v8c0 .55-.45 1-1 1H6v1c0 1.1.9 2 2 2h10l4 4V8c0-1.1-.9-2-2-2zm-3 5V4c0-1.1-.9-2-2-2H4c-1.1 0-2 .9-2 2v13l4-4h9c1.1 0 2-.9 2-2z"/></svg>
+          </div>
+          <h3>Q&A</h3>
+          <p>学生が匿名で質問を投稿。いいね機能で注目度の高い質問が上位に表示されます。</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon" style="background:rgba(99,102,241,0.15);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="#6366f1"><path d="M21 2H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h7l-2 3v1h8v-1l-2-3h7c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H3V4h18v12z"/></svg>
+          </div>
+          <h3>デスクトップオーバーレイ</h3>
+          <p>macOSネイティブアプリで、PowerPoint・Keynote等の上にリアクションを重ねて表示。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How it works -->
+    <section id="how">
+      <h2 class="section-title">How it works</h2>
+      <p class="section-desc">3ステップで教室をインタラクティブに</p>
+      <div class="steps">
+        <div class="step">
+          <h3>ルームを作成</h3>
+          <p>PCまたはデスクトップアプリからルームを作成。4桁のルームコードが発行されます。</p>
+        </div>
+        <div class="step">
+          <h3>QRコードで共有</h3>
+          <p>QRコードをプロジェクターに表示。学生はスマホでスキャンして即参加。</p>
+        </div>
+        <div class="step">
+          <h3>リアクション開始</h3>
+          <p>学生がリアクション・コメント・質問を送信。教室が一体になります。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Comparison -->
+    <section>
+      <h2 class="section-title">Why Reacture?</h2>
+      <p class="section-desc">既存サービスとの比較</p>
+      <div style="overflow-x:auto;">
+        <table class="comparison-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th class="highlight">Reacture</th>
+              <th>CommentScreen</th>
+              <th>Slido</th>
+              <th>Mentimeter</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>リアクション</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="check">&#10003;</td>
+              <td class="check">&#10003;</td>
+              <td class="check">&#10003;</td>
+            </tr>
+            <tr>
+              <td>効果音</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+            </tr>
+            <tr>
+              <td>ニコニコ風コメント</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+            </tr>
+            <tr>
+              <td>デスクトップオーバーレイ</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+            </tr>
+            <tr>
+              <td>Q&A（いいね付き）</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="check">&#10003;</td>
+              <td class="check">&#10003;</td>
+            </tr>
+            <tr>
+              <td>アンケート</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="check">&#10003;</td>
+              <td class="check">&#10003;</td>
+            </tr>
+            <tr>
+              <td>オープンソース</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+            </tr>
+            <tr>
+              <td>無料</td>
+              <td class="highlight check">&#10003;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+              <td class="cross">&#10005;</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Architecture -->
+    <section>
+      <h2 class="section-title">Architecture</h2>
+      <p class="section-desc">モダンな技術スタックで構築</p>
+      <div class="arch-cards">
+        <div class="arch-card">
+          <h3>Web App</h3>
+          <div class="tech">Next.js / React / Tailwind CSS</div>
+          <p>発表者画面・参加者画面をWebアプリとして提供。Vercelにデプロイ。</p>
+        </div>
+        <div class="arch-card">
+          <h3>Desktop App</h3>
+          <div class="tech">Electron / electron-builder</div>
+          <p>macOSネイティブアプリ。透明オーバーレイで任意のアプリ上にリアクションを表示。</p>
+        </div>
+        <div class="arch-card">
+          <h3>Real-time Server</h3>
+          <div class="tech">Socket.IO / Node.js</div>
+          <p>リアルタイム双方向通信でリアクション・コメント・投票を即時配信。Renderにデプロイ。</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <div class="cta">
+      <h2>教室をもっとインタラクティブに</h2>
+      <p>オープンソースで無料。今すぐ始められます。</p>
+      <div class="hero-buttons">
+        <a href="https://github.com/634nakajima/reacture/releases" class="btn btn-primary">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Download
+        </a>
+        <a href="https://github.com/634nakajima/reacture" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+      </div>
+    </div>
+
+    <footer>
+      <p>&copy; 2025 Reacture &mdash; Open Source Classroom Interaction Tool</p>
+    </footer>
+  </div>
+</body>
+</html>
