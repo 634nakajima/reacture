@@ -552,18 +552,6 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
               onRemove={handleRemoveCustomReaction}
             />
 
-            <button
-              onClick={() => setShowQA(!showQA)}
-              className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20 relative"
-            >
-              Q&A
-              {questions.filter((q) => !q.resolved).length > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-blue-500 text-white text-[10px] font-bold rounded-full px-1">
-                  {questions.filter((q) => !q.resolved).length}
-                </span>
-              )}
-            </button>
-
             {!activePoll && (
               <PollPanel onCreatePoll={handleCreatePoll} />
             )}
@@ -585,6 +573,18 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
                 className="w-20 h-1 accent-white cursor-pointer"
               />
             </div>
+
+            <button
+              onClick={() => setShowQA(!showQA)}
+              className="px-3 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20 relative"
+            >
+              Q&A
+              {questions.filter((q) => !q.resolved).length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] flex items-center justify-center bg-blue-500 text-white text-[10px] font-bold rounded-full px-1">
+                  {questions.filter((q) => !q.resolved).length}
+                </span>
+              )}
+            </button>
 
             <button
               onClick={() => setShowQR(!showQR)}

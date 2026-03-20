@@ -67,9 +67,9 @@ export default function QADisplay({
               }`}
             >
               {/* いいね数 */}
-              <div className="flex flex-col items-center min-w-[50px] pt-1">
-                <span className="text-blue-400 text-lg">▲</span>
-                <span className="text-white font-bold text-xl">{q.votes}</span>
+              <div className="flex items-center gap-1.5 min-w-[60px] pt-1">
+                <span className="text-2xl">👍</span>
+                <span className="text-white font-bold text-2xl">{q.votes}</span>
               </div>
 
               {/* 質問テキスト */}

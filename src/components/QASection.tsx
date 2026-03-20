@@ -93,14 +93,14 @@ export default function QASection({
                   <button
                     onClick={() => handleVote(q.id)}
                     disabled={votedIds.has(q.id) || q.resolved}
-                    className={`flex flex-col items-center min-w-[44px] pt-0.5 transition-colors ${
+                    className={`flex items-center gap-1 min-w-[44px] pt-0.5 transition-colors ${
                       votedIds.has(q.id)
                         ? 'text-blue-400'
                         : 'text-white/40 hover:text-blue-400'
                     } disabled:cursor-default`}
                   >
-                    <span className="text-lg">▲</span>
-                    <span className="text-xs font-bold">{q.votes}</span>
+                    <span className="text-base">👍</span>
+                    <span className="text-sm font-bold">{q.votes}</span>
                   </button>
 
                   {/* 質問テキスト */}
