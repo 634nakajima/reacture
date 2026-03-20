@@ -45,7 +45,7 @@ export default function PollPanel({
         onClick={() => setIsOpen(true)}
         className="px-4 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
       >
-        アンケート作成
+        アンケート
       </button>
     );
   }
@@ -56,7 +56,7 @@ export default function PollPanel({
         onClick={() => setIsOpen(false)}
         className="px-4 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
       >
-        アンケート作成
+        アンケート
       </button>
       <div className="absolute bottom-full mb-3 right-0 bg-gray-800/95 backdrop-blur-sm rounded-xl p-6 border border-white/10 w-[500px]">
       <form onSubmit={handleSubmit} className="space-y-4">
