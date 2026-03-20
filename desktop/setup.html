@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reacture Desktop</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f1a;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      padding: 72px 24px 48px;
+    }
+
+    /* ロゴ */
+    .logo { width: 56px; height: 56px; margin-bottom: 6px; }
+    .app-name {
+      font-size: 32px;
+      font-weight: bold;
+      background: linear-gradient(to right, #60a5fa, #a78bfa, #f472b6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 2px;
+    }
+    .subtitle {
+      color: rgba(255,255,255,0.4);
+      font-size: 13px;
+      margin-bottom: 36px;
+    }
+
+    /* カード */
+    .card {
+      width: 100%;
+      max-width: 340px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 14px;
+    }
+
+    /* ボタン */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      background: linear-gradient(to right, #2563eb, #7c3aed);
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ルームコード表示 */
+    .room-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.35);
+      margin-bottom: 6px;
+    }
+    .room-id {
+      font-size: 36px;
+      font-family: monospace;
+      font-weight: bold;
+      letter-spacing: 0.3em;
+      min-height: 44px;
+      background: linear-gradient(to right, #60a5fa, #a78bfa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .room-id.empty {
+      color: rgba(255,255,255,0.1);
+      -webkit-text-fill-color: rgba(255,255,255,0.1);
+      background: none;
+    }
+
+    /* QRボタン */
+    .btn-qr {
+      width: 100%;
+      padding: 10px;
+      border-radius: 12px;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      background: rgba(255,255,255,0.08);
+      margin-top: 10px;
+      display: none;
+    }
+    .btn-qr:hover { background: rgba(255,255,255,0.15); }
+
+    /* QRモーダル */
+    .qr-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .qr-overlay.show { display: flex; }
+    .qr-modal {
+      background: #fff;
+      border-radius: 24px;
+      padding: 40px;
+      text-align: center;
+    }
+    .qr-modal h2 {
+      font-size: 22px;
+      color: #1f2937;
+      margin-bottom: 8px;
+    }
+    .qr-modal .qr-subtitle {
+      font-size: 14px;
+      color: #9ca3af;
+      margin-bottom: 20px;
+    }
+    .qr-modal canvas { display: block; margin: 0 auto; }
+    .qr-modal .qr-room-code {
+      margin-top: 16px;
+      font-size: 40px;
+      font-family: monospace;
+      font-weight: bold;
+      letter-spacing: 0.3em;
+      color: #1f2937;
+    }
+    .qr-modal .qr-url {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #9ca3af;
+      word-break: break-all;
+    }
+    .qr-modal .btn-close {
+      margin-top: 16px;
+      padding: 10px 24px;
+      border-radius: 10px;
+      border: none;
+      background: #e5e7eb;
+      color: #4b5563;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .qr-modal .btn-close:hover { background: #d1d5db; }
+
+    /* ステータス */
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      min-height: 18px;
+      text-align: center;
+    }
+    .status.error { color: #f87171; }
+    .status.success { color: #34d399; }
+  </style>
+</head>
+<body>
+  <input type="hidden" id="serverUrl" value="https://reacture-server.onrender.com" />
+
+  <img src="../public/logo.png" class="logo" alt="Reacture" />
+  <div class="app-name">Reacture Desktop</div>
+  <p class="subtitle">授業をもっとインタラクティブに</p>
+
+  <div class="card">
+    <div class="card-title">🎓 先生・発表者</div>
+    <button class="btn" id="createBtn">ルームを作成</button>
+  </div>
+
+  <div class="card">
+    <div class="room-label">ルームコード</div>
+    <div class="room-id empty" id="createdRoomId">----</div>
+    <button class="btn-qr" id="qrBtn">📱 QRコードを表示</button>
+  </div>
+
+  <p class="status" id="status"></p>
+
+  <!-- QRモーダル -->
+  <div class="qr-overlay" id="qrOverlay">
+    <div class="qr-modal">
+      <h2>Reacture に参加</h2>
+      <p class="qr-subtitle">QRコードをスキャンするか、コードを入力</p>
+      <img id="qrImage" width="300" height="300" />
+      <div class="qr-room-code" id="qrRoomCode"></div>
+      <div class="qr-url" id="qrUrl"></div>
+      <button class="btn-close" id="qrCloseBtn">閉じる</button>
+    </div>
+  </div>
+
+  <script src="setup.js"></script>
+</body>
+</html>
