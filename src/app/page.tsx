@@ -10,11 +10,20 @@ export default function Home() {
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
   const [joining, setJoining] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const socketRef = useRef<ReturnType<typeof getSocket> | null>(null);
 
-  // ページ離脱時にソケットを切断
+  // スマホ判定 + ページ離脱時にソケットを切断
   useEffect(() => {
+    const checkMobile = () => {
+      const ua = navigator.userAgent;
+      const mobile = /iPhone|iPad|iPod|Android/i.test(ua) || window.innerWidth < 768;
+      setIsMobile(mobile);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
     return () => {
+      window.removeEventListener('resize', checkMobile);
       socketRef.current?.disconnect();
       socketRef.current = null;
     };
@@ -79,21 +88,23 @@ export default function Home() {
           </p>
         </div>
 
-        {/* 先生：ルーム作成 */}
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-lg font-semibold mb-4">🎓 先生・発表者</h2>
-          <button
-            onClick={createRoom}
-            disabled={creating}
-            className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold text-lg hover:from-blue-500 hover:to-purple-500 active:scale-95 transition-all disabled:opacity-50"
-          >
-            {creating ? '作成中...' : 'ルームを作成'}
-          </button>
-        </div>
+        {/* 先生：ルーム作成（PCのみ表示） */}
+        {!isMobile && (
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
+            <h2 className="text-lg font-semibold mb-4">🎓 先生・発表者</h2>
+            <button
+              onClick={createRoom}
+              disabled={creating}
+              className="w-full py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl text-white font-bold text-lg hover:from-blue-500 hover:to-purple-500 active:scale-95 transition-all disabled:opacity-50"
+            >
+              {creating ? '作成中...' : 'ルームを作成'}
+            </button>
+          </div>
+        )}
 
         {/* 学生：ルーム参加 */}
         <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/10">
-          <h2 className="text-lg font-semibold mb-4">📱 参加する</h2>
+          <h2 className="text-lg font-semibold mb-4">{isMobile ? '🎓 ルームに参加' : '📱 参加する'}</h2>
           <form onSubmit={joinRoom} className="space-y-3">
             <input
               type="text"
