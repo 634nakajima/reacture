@@ -95,7 +95,7 @@ export default function QADisplay({
                 </button>
                 <button
                   onClick={() => onDelete(q.id)}
-                  className="px-2 py-1.5 rounded-lg text-sm text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                  className="px-2 py-1.5 rounded-lg text-sm text-white/60 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 >
                   🗑
                 </button>
