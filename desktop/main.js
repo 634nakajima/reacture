@@ -219,8 +219,7 @@ function closePollWindow() {
 
 function createRoom(serverUrl) {
   if (socket) {
-    socket.disconnect();
-    socket = null;
+    if (socket) { socket.disconnect(); socket = null; }
   }
 
   console.log('[main] Creating room on', serverUrl);
@@ -272,15 +271,13 @@ function createRoom(serverUrl) {
         error: 'サーバーに接続できません',
       });
     }
-    socket.disconnect();
-    socket = null;
+    if (socket) { socket.disconnect(); socket = null; }
   });
 }
 
 function connectToRoom(serverUrl, roomId) {
   if (socket) {
-    socket.disconnect();
-    socket = null;
+    if (socket) { socket.disconnect(); socket = null; }
   }
 
   console.log('[main] Connecting to', serverUrl, 'room', roomId);
@@ -322,8 +319,7 @@ function connectToRoom(serverUrl, roomId) {
         error: 'サーバーに接続できません',
       });
     }
-    socket.disconnect();
-    socket = null;
+    if (socket) { socket.disconnect(); socket = null; }
   });
 }
 
@@ -460,8 +456,7 @@ function setupSocketListeners() {
     } else {
       createSetupWindow();
     }
-    socket.disconnect();
-    socket = null;
+    if (socket) { socket.disconnect(); socket = null; }
   });
 
   socket.on('connect_error', (err) => {
@@ -472,8 +467,7 @@ function setupSocketListeners() {
         error: 'サーバーに接続できません',
       });
     }
-    socket.disconnect();
-    socket = null;
+    if (socket) { socket.disconnect(); socket = null; }
   });
 }
 
