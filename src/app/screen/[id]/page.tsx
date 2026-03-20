@@ -397,19 +397,6 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
               </button>
             </div>
 
-            {/* スライドなしモード */}
-            <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-left">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2"><svg className="w-5 h-5 text-white/70" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>リアクション・コメントのみ</h3>
-              <p className="text-sm text-white/40 mb-3">
-                スライドを表示せず、リアクションとコメントだけを使う
-              </p>
-              <button
-                onClick={() => setSlideMode('upload')}
-                className="px-5 py-3 bg-white/10 rounded-xl text-white font-medium hover:bg-white/20"
-              >
-                このまま始める
-              </button>
-            </div>
           </div>
         )}
       </div>
