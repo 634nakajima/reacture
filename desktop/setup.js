@@ -141,13 +141,15 @@ overlayToggleBtn.addEventListener('click', () => {
 });
 
 function updateOverlayBtn() {
+  const dot = document.getElementById('overlayDot');
   if (overlayVisible) {
-    overlayToggleBtn.textContent = 'オーバーレイ ON';
-    overlayToggleBtn.className = 'btn btn-toggle active';
+    overlayToggleBtn.className = 'btn-overlay active';
+    dot.className = 'overlay-dot on';
   } else {
-    overlayToggleBtn.textContent = 'オーバーレイ OFF';
-    overlayToggleBtn.className = 'btn btn-toggle inactive';
+    overlayToggleBtn.className = 'btn-overlay inactive';
+    dot.className = 'overlay-dot off';
   }
+  overlayToggleBtn.innerHTML = `<span class="${dot.className}" id="overlayDot"></span>オーバーレイ ${overlayVisible ? 'ON' : 'OFF'}`;
 }
 
 // トレイメニューやショートカットからの状態変更を受け取る
@@ -330,8 +332,8 @@ qaOpenBtn.addEventListener('click', () => {
 window.electronAPI.onQACount((count) => {
   if (count > 0) {
     qaBadge.textContent = count;
-    qaBadge.style.display = 'inline-block';
+    qaBadge.classList.remove('hidden');
   } else {
-    qaBadge.style.display = 'none';
+    qaBadge.classList.add('hidden');
   }
 });

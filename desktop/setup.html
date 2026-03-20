@@ -62,16 +62,99 @@
       background: linear-gradient(to right, #dc2626, #b91c1c);
     }
 
-    /* 小ボタン行 */
-    .btn-row {
+    /* プライマリボタン行（QR / オーバーレイ） */
+    .primary-row {
       display: flex;
       gap: 8px;
+      margin-top: 12px;
+    }
+    .primary-row .btn { flex: 1; padding: 10px; font-size: 13px; }
+
+    .btn-primary-icon {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: linear-gradient(to right, #2563eb, #7c3aed);
+    }
+    .btn-primary-icon:hover { opacity: 0.85; }
+    .btn-primary-icon svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .btn-overlay {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-overlay.active { background: linear-gradient(135deg, #059669, #0d9488); }
+    .btn-overlay.inactive { background: rgba(255, 255, 255, 0.08); color: rgba(255,255,255,0.5); }
+    .btn-overlay:hover { opacity: 0.85; }
+    .overlay-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .overlay-dot.on { background: #6ee7b7; box-shadow: 0 0 6px #34d399; }
+    .overlay-dot.off { background: rgba(255,255,255,0.25); }
+
+    /* セカンダリボタン行（Q&A / アンケート / カスタムリアクション） */
+    .secondary-row {
+      display: flex;
+      gap: 6px;
       margin-top: 8px;
     }
-    .btn-row .btn { flex: 1; padding: 10px; font-size: 13px; }
-
-    .btn-toggle.active { background: linear-gradient(to right, #059669, #0d9488); }
-    .btn-toggle.inactive { background: rgba(239, 68, 68, 0.6); }
+    .btn-secondary {
+      flex: 1;
+      position: relative;
+      padding: 9px 4px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: transparent;
+      color: rgba(255,255,255,0.65);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: rgba(255,255,255,0.25);
+      color: #fff;
+    }
+    .badge {
+      position: absolute;
+      top: -6px;
+      right: -4px;
+      min-width: 18px;
+      height: 18px;
+      border-radius: 9px;
+      background: #3b82f6;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 18px;
+      text-align: center;
+      padding: 0 5px;
+      color: #fff;
+    }
 
     .room-label {
       font-size: 11px;
@@ -311,16 +394,22 @@
     <div class="room-label" style="margin-top: 16px;">ルームコード</div>
     <div class="room-id empty" id="createdRoomId">----</div>
 
-    <!-- QR / オーバーレイ -->
-    <div class="btn-row hidden" id="controlsRow">
-      <button class="btn" id="qrBtn">QR コード</button>
-      <button class="btn btn-toggle active" id="overlayToggleBtn">オーバーレイ ON</button>
+    <!-- QR / オーバーレイ（プライマリ） -->
+    <div class="primary-row hidden" id="controlsRow">
+      <button class="btn-primary-icon" id="qrBtn">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 11h2v2H3v-2zm0-4h2v2H3V7zm4 4h2v2H7v-2zm0-4h2v2H7V7zm-4 8h2v2H3v-2zm8-8h2v2h-2V7zm-4 8h2v2H7v-2zM3 3v4h4V3H3zm2 2h-2V5h2v2zm8-2v4h4V3h-4zm2 2h2V5h-2v2zM3 13v4h4v-4H3zm2 2H5v-2h2v2zm8 0h2v2h-2v-2zm0-4h2v2h-2v-2zm4 4h2v2h-2v-2zm0-4h2v2h-2v-2zm-4 8h2v2h-2v-2zm4 0h2v2h-2v-2zm0-8h2v2h-2V7z"/></svg>
+        QR
+      </button>
+      <button class="btn-overlay active" id="overlayToggleBtn">
+        <span class="overlay-dot on" id="overlayDot"></span>
+        オーバーレイ ON
+      </button>
     </div>
-    <!-- Q&A / アンケート / カスタムリアクション -->
-    <div class="btn-row hidden" id="toolsRow">
-      <button class="btn" id="qaOpenBtn" style="position:relative;">Q&A<span id="qaBadge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;border-radius:9px;background:#3b82f6;font-size:10px;font-weight:bold;line-height:18px;text-align:center;padding:0 4px;"></span></button>
-      <button class="btn" id="pollOpenBtn">アンケート</button>
-      <button class="btn" id="customOpenBtn">カスタムリアクション</button>
+    <!-- Q&A / アンケート / カスタムリアクション（セカンダリ） -->
+    <div class="secondary-row hidden" id="toolsRow">
+      <button class="btn-secondary" id="qaOpenBtn">Q&A<span class="badge hidden" id="qaBadge"></span></button>
+      <button class="btn-secondary" id="pollOpenBtn">アンケート</button>
+      <button class="btn-secondary" id="customOpenBtn">リアクション</button>
     </div>
     <!-- ボリューム -->
     <div class="volume-row hidden" id="volumeRow">
