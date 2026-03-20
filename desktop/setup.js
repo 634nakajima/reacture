@@ -190,13 +190,13 @@ volumeIcon.addEventListener('click', () => {
 
 function updateVolumeIcon() {
   if (currentVolume === 0) {
-    volumeIcon.textContent = '🔇';
+    volumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63z"/><path d="M2.1 2.1L.69 3.51l4.8 4.8L5 9H1v6h4l5 5v-6.59l4.45 4.45c-.7.54-1.51.96-2.45 1.18v2.06c1.52-.32 2.89-1.02 4.01-2.01l2.48 2.48 1.41-1.41L2.1 2.1z"/></svg>';
   } else if (currentVolume < 0.3) {
-    volumeIcon.textContent = '🔈';
+    volumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 9v6h4l5 5V4l-5 5H7z"/></svg>';
   } else if (currentVolume < 0.7) {
-    volumeIcon.textContent = '🔉';
+    volumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/></svg>';
   } else {
-    volumeIcon.textContent = '🔊';
+    volumeIcon.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>';
   }
 }
 
