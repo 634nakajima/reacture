@@ -39,18 +39,18 @@ export default function CustomReactionSetting({
       <div className="flex items-center gap-2">
         {current ? (
           <>
-            <span className="px-3 py-2 bg-yellow-600/50 text-white rounded-lg text-sm">
+            <span className="px-3 py-2 rounded-lg text-sm border border-white/20 text-white/80">
               {current.emoji} {current.label}
             </span>
             <button
               onClick={() => setIsOpen(true)}
-              className="px-2 py-2 bg-white/10 text-white rounded-lg text-sm hover:bg-white/20"
+              className="px-2 py-2 rounded-lg text-sm border border-white/20 text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
             >
               編集
             </button>
             <button
               onClick={onRemove}
-              className="px-2 py-2 bg-white/10 text-white/50 rounded-lg text-sm hover:bg-red-600/50"
+              className="px-2 py-2 rounded-lg text-sm border border-white/20 text-white/50 hover:border-red-400/50 hover:text-red-400 transition-all"
             >
               ✕
             </button>
@@ -58,7 +58,7 @@ export default function CustomReactionSetting({
         ) : (
           <button
             onClick={() => setIsOpen(true)}
-            className="px-3 py-2 bg-yellow-600/80 text-white rounded-lg text-sm hover:bg-yellow-500"
+            className="px-3 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
           >
             ＋ カスタム
           </button>

@@ -43,7 +43,7 @@ export default function PollPanel({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="px-4 py-2 bg-purple-600/80 text-white rounded-lg text-sm hover:bg-purple-500 transition-colors"
+        className="px-4 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
       >
         アンケート作成
       </button>
@@ -54,7 +54,7 @@ export default function PollPanel({
     <div className="relative">
       <button
         onClick={() => setIsOpen(false)}
-        className="px-4 py-2 bg-purple-600/80 text-white rounded-lg text-sm hover:bg-purple-500 transition-colors"
+        className="px-4 py-2 rounded-lg text-sm font-semibold border border-white/20 bg-transparent text-white/70 hover:bg-white/5 hover:border-white/30 hover:text-white transition-all"
       >
         アンケート作成
       </button>
