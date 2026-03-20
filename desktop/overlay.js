@@ -144,6 +144,13 @@ const qaToastsContainer = document.getElementById('qa-toasts');
 let toastCount = 0;
 
 window.electronAPI.onQAToast((question) => {
+  // 質問リアクションの効果音を再生
+  const questionSound = REACTIONS.question;
+  if (questionSound) {
+    const filePath = window.electronAPI.getSoundPath(questionSound.sound);
+    playSound(filePath);
+  }
+
   if (toastCount >= 3) return; // 最大3個まで同時表示
 
   const toast = document.createElement('div');
