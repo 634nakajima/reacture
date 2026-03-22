@@ -7,6 +7,6 @@ services:
     startCommand: npm start
     envVars:
       - key: CLIENT_ORIGIN
-        value: https://reacture.vercel.app
+        value: https://reacture-alpha.vercel.app
       - key: NODE_ENV
         value: production
