@@ -53,8 +53,19 @@
     }
 
     /* Header */
+    .header-wrap {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 10, 15, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
     header {
-      padding: 20px 0;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 14px 24px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -330,7 +341,7 @@
 <body>
   <div class="bg-glow"></div>
 
-  <div class="container">
+  <div class="header-wrap">
     <header>
       <a href="#" class="header-logo">
         <img src="logo.png" alt="Reacture" />
@@ -342,6 +353,9 @@
         <a href="https://github.com/634nakajima/reacture" target="_blank" class="btn-sm">GitHub</a>
       </div>
     </header>
+  </div>
+
+  <div class="container">
 
     <!-- Hero -->
     <div class="hero">
