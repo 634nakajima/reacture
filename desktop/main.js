@@ -22,6 +22,7 @@ let tray = null;
 let socket = null;
 let currentVolume = 0.5;
 let currentRoomId = null;
+let currentHostToken = null;
 let overlayVisible = false;
 let questions = [];
 
@@ -228,8 +229,9 @@ function createRoom(serverUrl) {
   socket.on('connect', () => {
     console.log('[main] Socket connected, creating room...');
     socket.emit('room:create', (data) => {
-      if (data && data.roomId) {
+      if (data && data.roomId && !data.error) {
         currentRoomId = data.roomId;
+        currentHostToken = data.hostToken || null;
         console.log('[main] Room created:', data.roomId);
         if (setupWindow) {
           setupWindow.webContents.send('connection-result', {
@@ -434,6 +436,7 @@ function setupSocketListeners() {
   socket.on('room:closed', () => {
     console.log('[main] Room closed');
     currentRoomId = null;
+    currentHostToken = null;
     updateTrayMenu();
     if (overlayWindow) {
       overlayWindow.webContents.send('room-closed');
@@ -528,6 +531,7 @@ function updateTrayMenu() {
           socket.emit('room:close', { roomId: currentRoomId });
         }
         currentRoomId = null;
+        currentHostToken = null;
         overlayVisible = false;
         if (overlayWindow) overlayWindow.hide();
         closePollWindow();
@@ -674,9 +678,16 @@ ipcMain.on('get-sound-path', (event, filename) => {
 });
 
 ipcMain.on('read-file-buffer', (event, filePath) => {
+  const soundsDir = path.join(__dirname, 'sounds');
+  const resolvedPath = path.resolve(String(filePath));
+  if (!resolvedPath.startsWith(soundsDir + path.sep) && resolvedPath !== soundsDir) {
+    console.warn('[main] Blocked file read outside sounds dir:', filePath);
+    event.returnValue = null;
+    return;
+  }
   try {
     const fs = require('fs');
-    const buf = fs.readFileSync(filePath);
+    const buf = fs.readFileSync(resolvedPath);
     event.returnValue = buf.toJSON().data;
   } catch (e) {
     console.warn('[main] Failed to read file:', filePath, e);
@@ -701,6 +712,7 @@ ipcMain.on('close-room', () => {
     socket.emit('room:close', { roomId: currentRoomId });
   }
   currentRoomId = null;
+  currentHostToken = null;
   overlayVisible = false;
   updateTrayMenu();
   if (socket) {

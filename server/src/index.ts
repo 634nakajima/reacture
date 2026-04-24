@@ -55,6 +55,7 @@ interface Question {
 interface Room {
   id: string;
   hostSocketId: string;
+  hostToken: string;
   currentPage: number;
   activePoll: Poll | null;
   customReaction: CustomReaction | null;
@@ -86,35 +87,44 @@ function getParticipantCount(roomId: string): number {
 io.on('connection', (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  // ルーム作成（IDなし → 新規ID生成、ID指定 → そのIDで作成/再接続）
+  // ルーム作成（IDなし → 新規ID生成、ID+トークン指定 → ホストとして再接続）
   socket.on('room:create', (arg1: unknown, arg2?: unknown) => {
     let requestedId: string | undefined;
-    let callback: (data: { roomId: string }) => void;
+    let hostToken: string | undefined;
+    let callback: (data: { roomId: string; hostToken?: string; error?: string }) => void;
 
     if (typeof arg1 === 'function') {
-      callback = arg1 as (data: { roomId: string }) => void;
+      callback = arg1 as (data: { roomId: string; hostToken?: string; error?: string }) => void;
     } else if (typeof arg1 === 'object' && arg1 !== null) {
-      requestedId = (arg1 as { roomId?: string }).roomId;
-      callback = arg2 as (data: { roomId: string }) => void;
+      requestedId = (arg1 as { roomId?: string; hostToken?: string }).roomId;
+      hostToken = (arg1 as { roomId?: string; hostToken?: string }).hostToken;
+      callback = arg2 as (data: { roomId: string; hostToken?: string; error?: string }) => void;
     } else {
       return;
     }
 
-    // 指定IDのルームが既に存在する場合はホストとして再接続
+    // 指定IDのルームが既に存在する場合はトークンを検証してからホストとして再接続
     if (requestedId && rooms.has(requestedId)) {
       const room = rooms.get(requestedId)!;
+      if (!hostToken || room.hostToken !== hostToken) {
+        callback({ roomId: requestedId, error: '認証エラー' });
+        console.warn(`Unauthorized host reconnect attempt for room: ${requestedId}`);
+        return;
+      }
       room.hostSocketId = socket.id;
       socket.join(requestedId);
-      callback({ roomId: requestedId });
+      callback({ roomId: requestedId, hostToken: room.hostToken });
       console.log(`Host reconnected to room: ${requestedId}`);
       return;
     }
 
     const roomId = requestedId || generateRoomId();
+    const newHostToken = uuidv4();
 
     const room: Room = {
       id: roomId,
       hostSocketId: socket.id,
+      hostToken: newHostToken,
       currentPage: 0,
       activePoll: null,
       customReaction: null,
@@ -123,7 +133,7 @@ io.on('connection', (socket) => {
 
     rooms.set(roomId, room);
     socket.join(roomId);
-    callback({ roomId });
+    callback({ roomId, hostToken: newHostToken });
     console.log(`Room created: ${roomId}`);
   });
 
