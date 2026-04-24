@@ -12,7 +12,7 @@ export const REACTIONS: Record<ReactionType, { emoji: string; label: string; sou
 export interface CustomReaction {
   emoji: string;
   label: string;
-  soundUrl: string;
+  soundUrl?: string; // ホストのスクリーン画面でのみ管理。サーバー経由では送受信しない
 }
 
 export interface ReactionEvent {
