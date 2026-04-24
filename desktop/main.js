@@ -13,6 +13,18 @@ const path = require('path');
 const { io } = require('socket.io-client');
 const QRCode = require('qrcode');
 
+// サーバーURLのホワイトリスト検証（https:// のみ許可、localhostは http も可）
+function isAllowedServerUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const isLocalhost = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+    if (isLocalhost) return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    return parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 let setupWindow = null;
 let overlayWindow = null;
 let qrWindow = null;
@@ -661,11 +673,25 @@ app.on('window-all-closed', () => {
 
 ipcMain.on('create-request', (_event, config) => {
   console.log('[main] Create request:', config);
+  if (!isAllowedServerUrl(config.serverUrl)) {
+    setupWindow?.webContents.send('connection-result', {
+      success: false,
+      error: 'サーバーURLはhttps://で始まる必要があります',
+    });
+    return;
+  }
   createRoom(config.serverUrl);
 });
 
 ipcMain.on('connect-request', (_event, config) => {
   console.log('[main] Connect request:', config);
+  if (!isAllowedServerUrl(config.serverUrl)) {
+    setupWindow?.webContents.send('connection-result', {
+      success: false,
+      error: 'サーバーURLはhttps://で始まる必要があります',
+    });
+    return;
+  }
   connectToRoom(config.serverUrl, config.roomId);
 });
 

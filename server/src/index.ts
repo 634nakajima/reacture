@@ -57,12 +57,40 @@ interface Room {
   hostSocketId: string;
   hostToken: string;
   currentPage: number;
+  lastActivityAt: number;
   activePoll: Poll | null;
   customReaction: CustomReaction | null;
   questions: Question[];
 }
 
 const rooms = new Map<string, Room>();
+const MAX_ROOMS = 100;
+
+// per-socket レート制限（スライディングウィンドウ）
+const rateLimits = new Map<string, Map<string, { count: number; windowStart: number }>>();
+
+function isRateLimited(socketId: string, event: string, maxPerWindow: number, windowMs: number): boolean {
+  let perSocket = rateLimits.get(socketId);
+  if (!perSocket) {
+    perSocket = new Map();
+    rateLimits.set(socketId, perSocket);
+  }
+  const now = Date.now();
+  const state = perSocket.get(event);
+  if (!state || now - state.windowStart >= windowMs) {
+    perSocket.set(event, { count: 1, windowStart: now });
+    return false;
+  }
+  if (state.count >= maxPerWindow) return true;
+  state.count++;
+  return false;
+}
+
+// soundUrl は blob: か data:audio/ のみ許可（外部URLをブロック）
+function isValidSoundUrl(url: string): boolean {
+  if (!url) return true;
+  return url.startsWith('blob:') || url.startsWith('data:audio/');
+}
 
 function generateRoomId(): string {
   // 4桁の英数字（入力しやすい）
@@ -118,6 +146,11 @@ io.on('connection', (socket) => {
       return;
     }
 
+    if (rooms.size >= MAX_ROOMS) {
+      callback({ roomId: '', error: 'サーバーが満杯です。しばらく後にお試しください。' });
+      return;
+    }
+
     const roomId = requestedId || generateRoomId();
     const newHostToken = uuidv4();
 
@@ -126,6 +159,7 @@ io.on('connection', (socket) => {
       hostSocketId: socket.id,
       hostToken: newHostToken,
       currentPage: 0,
+      lastActivityAt: Date.now(),
       activePoll: null,
       customReaction: null,
       questions: [],
@@ -171,8 +205,11 @@ io.on('connection', (socket) => {
     console.log(`User joined room ${roomId} (${userCount} users)`);
   });
 
-  // リアクション
+  // リアクション（20回/5秒）
   socket.on('reaction', (data: { roomId: string; type: string; emoji: string }) => {
+    if (isRateLimited(socket.id, 'reaction', 20, 5000)) return;
+    const room = rooms.get(data.roomId);
+    if (room) room.lastActivityAt = Date.now();
     const reaction = {
       id: uuidv4(),
       type: data.type,
@@ -181,9 +218,12 @@ io.on('connection', (socket) => {
     io.to(data.roomId).emit('reaction:new', reaction);
   });
 
-  // コメント
+  // コメント（5回/10秒）
   socket.on('comment', (data: { roomId: string; text: string }) => {
+    if (isRateLimited(socket.id, 'comment', 5, 10000)) return;
     if (!data.text.trim()) return;
+    const room = rooms.get(data.roomId);
+    if (room) room.lastActivityAt = Date.now();
     const comment = {
       id: uuidv4(),
       text: data.text.trim().slice(0, 100), // 最大100文字
@@ -246,6 +286,10 @@ io.on('connection', (socket) => {
   socket.on('custom-reaction:set', (data: { roomId: string; emoji: string; label: string; soundUrl: string }) => {
     const room = rooms.get(data.roomId);
     if (room && room.hostSocketId === socket.id) {
+      if (!isValidSoundUrl(data.soundUrl)) {
+        console.warn(`[room:${data.roomId}] Blocked invalid soundUrl from ${socket.id}`);
+        return;
+      }
       room.customReaction = {
         emoji: data.emoji,
         label: data.label,
@@ -255,12 +299,14 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Q&A: 質問投稿
+  // Q&A: 質問投稿（3回/30秒）
   socket.on('qa:post', (data: { roomId: string; text: string }) => {
+    if (isRateLimited(socket.id, 'qa:post', 3, 30000)) return;
     const room = rooms.get(data.roomId);
     if (!room) return;
     const text = data.text.trim().slice(0, 200);
     if (!text) return;
+    room.lastActivityAt = Date.now();
 
     // 1ルームあたり100件上限
     if (room.questions.length >= 100) {
@@ -287,8 +333,9 @@ io.on('connection', (socket) => {
     io.to(data.roomId).emit('qa:new', questionData);
   });
 
-  // Q&A: いいね
+  // Q&A: いいね（10回/5秒）
   socket.on('qa:vote', (data: { roomId: string; questionId: string }) => {
+    if (isRateLimited(socket.id, 'qa:vote', 10, 5000)) return;
     const room = rooms.get(data.roomId);
     if (!room) return;
     const question = room.questions.find((q) => q.id === data.questionId);
@@ -346,6 +393,7 @@ io.on('connection', (socket) => {
   // 切断
   socket.on('disconnect', () => {
     console.log(`Client disconnected: ${socket.id}`);
+    rateLimits.delete(socket.id);
 
     // ホストが切断した場合、ルームを削除
     for (const [roomId, room] of rooms.entries()) {
@@ -363,6 +411,19 @@ io.on('connection', (socket) => {
     }
   });
 });
+
+// 非アクティブルームの自動クリーンアップ（15分ごとに、60分操作のないルームを削除）
+const INACTIVITY_LIMIT_MS = 60 * 60 * 1000; // 60分
+setInterval(() => {
+  const now = Date.now();
+  for (const [roomId, room] of rooms.entries()) {
+    if (now - room.lastActivityAt > INACTIVITY_LIMIT_MS) {
+      io.to(roomId).emit('room:closed');
+      rooms.delete(roomId);
+      console.log(`Room ${roomId} cleaned up due to inactivity`);
+    }
+  }
+}, 15 * 60 * 1000);
 
 const PORT = process.env.PORT || 3001;
 httpServer.listen(Number(PORT), '0.0.0.0', () => {
