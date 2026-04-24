@@ -40,7 +40,6 @@ interface Poll {
 interface CustomReaction {
   emoji: string;
   label: string;
-  soundUrl: string; // クライアント側のblob URLまたはパス
 }
 
 interface Question {
@@ -86,11 +85,6 @@ function isRateLimited(socketId: string, event: string, maxPerWindow: number, wi
   return false;
 }
 
-// soundUrl は blob: か data:audio/ のみ許可（外部URLをブロック）
-function isValidSoundUrl(url: string): boolean {
-  if (!url) return true;
-  return url.startsWith('blob:') || url.startsWith('data:audio/');
-}
 
 function generateRoomId(): string {
   // 4桁の英数字（入力しやすい）
@@ -282,18 +276,13 @@ io.on('connection', (socket) => {
     }
   });
 
-  // カスタムリアクション設定（ホストのみ）
-  socket.on('custom-reaction:set', (data: { roomId: string; emoji: string; label: string; soundUrl: string }) => {
+  // カスタムリアクション設定（ホストのみ）― soundUrlはクライアント側でのみ管理
+  socket.on('custom-reaction:set', (data: { roomId: string; emoji: string; label: string }) => {
     const room = rooms.get(data.roomId);
     if (room && room.hostSocketId === socket.id) {
-      if (!isValidSoundUrl(data.soundUrl)) {
-        console.warn(`[room:${data.roomId}] Blocked invalid soundUrl from ${socket.id}`);
-        return;
-      }
       room.customReaction = {
         emoji: data.emoji,
         label: data.label,
-        soundUrl: data.soundUrl,
       };
       io.to(data.roomId).emit('custom-reaction:updated', room.customReaction);
     }

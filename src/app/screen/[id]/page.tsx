@@ -35,6 +35,7 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
   const [pdfLoading, setPdfLoading] = useState(false);
   const [customReaction, setCustomReaction] = useState<CustomReaction | null>(null);
   const customReactionRef = useRef<CustomReaction | null>(null);
+  const customSoundUrlRef = useRef<string>('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [showQA, setShowQA] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -111,9 +112,16 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
       setComments((prev) => [...prev, comment]);
     });
 
-    socket.on('custom-reaction:updated', (data: CustomReaction | null) => {
-      setCustomReaction(data);
-      customReactionRef.current = data;
+    socket.on('custom-reaction:updated', (data: Omit<CustomReaction, 'soundUrl'> | null) => {
+      if (data === null) {
+        customSoundUrlRef.current = '';
+        setCustomReaction(null);
+        customReactionRef.current = null;
+      } else {
+        const full: CustomReaction = { ...data, soundUrl: customSoundUrlRef.current };
+        setCustomReaction(full);
+        customReactionRef.current = full;
+      }
     });
 
     socket.on('poll:started', (poll: Poll) => {
@@ -176,13 +184,15 @@ export default function ScreenPage({ params }: { params: Promise<{ id: string }>
 
   const handleSetCustomReaction = useCallback(
     (emoji: string, label: string, soundUrl: string) => {
+      customSoundUrlRef.current = soundUrl;
       const socket = getSocket();
-      socket.emit('custom-reaction:set', { roomId, emoji, label, soundUrl });
+      socket.emit('custom-reaction:set', { roomId, emoji, label });
     },
     [roomId]
   );
 
   const handleRemoveCustomReaction = useCallback(() => {
+    customSoundUrlRef.current = '';
     const socket = getSocket();
     socket.emit('custom-reaction:remove', { roomId });
   }, [roomId]);
