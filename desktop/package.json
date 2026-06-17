@@ -1,6 +1,6 @@
 {
   "name": "reacture-desktop",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Reacture desktop overlay - reactions and comments on top of any app",
   "author": "634nakajima",
   "main": "main.js",
