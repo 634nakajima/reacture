@@ -36,8 +36,11 @@
       "overlay.js",
       "overlay.css",
       "qr-window.html",
+      "qr-window.js",
       "poll-window.html",
+      "poll-window.js",
       "qa-window.html",
+      "qa-window.js",
       "logo.png",
       "sounds/**/*",
       "node_modules/**/*"

@@ -55,12 +55,6 @@
   <div class="room-code" id="roomCode"></div>
   <div class="join-url" id="joinUrl"></div>
 
-  <script>
-    window.electronAPI.onQRData((data) => {
-      document.getElementById('qrImage').src = data.qrDataUrl;
-      document.getElementById('roomCode').textContent = data.roomId;
-      document.getElementById('joinUrl').textContent = data.joinUrl;
-    });
-  </script>
+  <script src="qr-window.js"></script>
 </body>
 </html>
