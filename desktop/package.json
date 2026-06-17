@@ -13,7 +13,7 @@
     "mac": {
       "category": "public.app-category.education",
       "icon": "icon.icns",
-      "target": "dir"
+      "target": "dmg"
     },
     "files": [
       "main.js",
