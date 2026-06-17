@@ -34,9 +34,9 @@ jobs:
       run:
         working-directory: desktop
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: npm
@@ -51,13 +51,19 @@ jobs:
           # 署名証明書の自動検出を無効化（未署名ビルド）
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
+      # gh CLI でアップロード（node20 製サードパーティ Action を使わず Node24 警告を回避）
       - name: Attach artifacts to release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
-          files: |
-            desktop/dist/*.dmg
-            desktop/dist/*.exe
-          fail_on_unmatched_files: false
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(dist/*.dmg dist/*.exe)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "::error::No artifacts found in desktop/dist"; exit 1
+          fi
+          echo "Uploading: ${files[*]}"
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes "Automated release $TAG" || true
+          gh release upload "$TAG" "${files[@]}" --clobber --repo "$GITHUB_REPOSITORY"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}

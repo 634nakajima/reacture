@@ -19,6 +19,7 @@
     },
     "win": {
       "target": "nsis",
+      "icon": "icon.ico",
       "artifactName": "Reacture-Desktop-Windows-${arch}.${ext}"
     },
     "nsis": {
