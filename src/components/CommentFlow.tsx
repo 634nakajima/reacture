@@ -52,7 +52,7 @@ export default function CommentFlow({
       {flowing.map((c) => (
         <div
           key={c.flowId}
-          className="absolute whitespace-nowrap text-white text-2xl md:text-3xl font-bold animate-flow-left"
+          className="absolute whitespace-nowrap text-white text-3xl md:text-4xl font-bold animate-flow-left"
           style={{
             top: `${c.y}%`,
             left: '100%',
