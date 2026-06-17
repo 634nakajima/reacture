@@ -2,6 +2,7 @@
   "name": "reacture-desktop",
   "version": "0.1.0",
   "description": "Reacture desktop overlay - reactions and comments on top of any app",
+  "author": "634nakajima",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -13,7 +14,17 @@
     "mac": {
       "category": "public.app-category.education",
       "icon": "icon.icns",
-      "target": "dmg"
+      "target": "dmg",
+      "artifactName": "Reacture-Desktop-macOS-${arch}.${ext}"
+    },
+    "win": {
+      "target": "nsis",
+      "artifactName": "Reacture-Desktop-Windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
     },
     "files": [
       "main.js",

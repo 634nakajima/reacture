@@ -1,0 +1,63 @@
+name: Release Desktop
+
+# v* タグを push するとビルド開始。既存タグに後から添付したい場合は
+# Actions タブから "Run workflow" (workflow_dispatch) で tag を指定。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'リリースを作成/添付する既存タグ (例: v0.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macOS
+            ebargs: --mac --arm64
+          - os: windows-latest
+            platform: Windows
+            ebargs: --win --x64
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (${{ matrix.platform }})
+        run: npx --no-install electron-builder ${{ matrix.ebargs }} --publish never
+        env:
+          # 署名証明書の自動検出を無効化（未署名ビルド）
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Attach artifacts to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          files: |
+            desktop/dist/*.dmg
+            desktop/dist/*.exe
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
